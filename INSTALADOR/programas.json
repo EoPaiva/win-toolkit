@@ -1,0 +1,103 @@
+{
+  "maquina": [
+    { "id": "Microsoft.VCRedist.2005.x86", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2005 x86" },
+    { "id": "Microsoft.VCRedist.2005.x64", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2005 x64" },
+    { "id": "Microsoft.VCRedist.2008.x86", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2008 x86" },
+    { "id": "Microsoft.VCRedist.2008.x64", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2008 x64" },
+    { "id": "Microsoft.VCRedist.2010.x86", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2010 x86" },
+    { "id": "Microsoft.VCRedist.2010.x64", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2010 x64" },
+    { "id": "Microsoft.VCRedist.2012.x86", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2012 x86" },
+    { "id": "Microsoft.VCRedist.2012.x64", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2012 x64" },
+    { "id": "Microsoft.VCRedist.2013.x86", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2013 x86" },
+    { "id": "Microsoft.VCRedist.2013.x64", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2013 x64" },
+    { "id": "Microsoft.VCRedist.2015+.x86", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2015+ x86" },
+    { "id": "Microsoft.VCRedist.2015+.x64", "grupo": "Dependências (AIO)", "rotulo": "Visual C++ 2015+ x64" },
+    { "id": "Microsoft.DotNet.DesktopRuntime.6", "grupo": "Dependências (AIO)", "rotulo": ".NET 6 Desktop" },
+    { "id": "Microsoft.DotNet.DesktopRuntime.7", "grupo": "Dependências (AIO)", "rotulo": ".NET 7 Desktop" },
+    { "id": "Microsoft.DotNet.DesktopRuntime.8", "grupo": "Dependências (AIO)", "rotulo": ".NET 8 Desktop" },
+    { "id": "Microsoft.DotNet.DesktopRuntime.9", "grupo": "Dependências (AIO)", "rotulo": ".NET 9 Desktop" },
+    { "id": "Microsoft.DotNet.DesktopRuntime.10", "grupo": "Dependências (AIO)", "rotulo": ".NET 10 Desktop" },
+    { "id": "Microsoft.DirectX", "grupo": "Dependências (AIO)", "rotulo": "DirectX (legado)" },
+    { "id": "Microsoft.XNARedist", "grupo": "Dependências (AIO)", "rotulo": "XNA Framework" },
+    { "id": "Microsoft.GameInput", "grupo": "Dependências (AIO)", "rotulo": "GameInput" },
+    { "id": "CreativeTechnology.OpenAL", "grupo": "Dependências (AIO)", "rotulo": "OpenAL" },
+    { "id": "Microsoft.EdgeWebView2Runtime", "grupo": "Dependências (AIO)", "rotulo": "WebView2" },
+    { "id": "EclipseAdoptium.Temurin.21.JRE", "grupo": "Dependências (AIO)", "rotulo": "Java 21 (Temurin)" },
+
+    { "id": "Google.Chrome", "grupo": "Navegador e utilitários", "rotulo": "Google Chrome" },
+    { "id": "7zip.7zip", "grupo": "Navegador e utilitários", "rotulo": "7-Zip" },
+    { "id": "RARLab.WinRAR", "grupo": "Navegador e utilitários", "rotulo": "WinRAR" },
+    { "id": "Microsoft.WindowsTerminal", "grupo": "Navegador e utilitários", "rotulo": "Windows Terminal" },
+    { "id": "Microsoft.PowerShell", "grupo": "Navegador e utilitários", "rotulo": "PowerShell 7" },
+    { "id": "TeamViewer.TeamViewer", "grupo": "Navegador e utilitários", "rotulo": "TeamViewer" },
+    { "id": "ownCloud.ownCloudDesktop", "grupo": "Navegador e utilitários", "rotulo": "ownCloud" },
+
+    { "id": "Git.Git", "comando": "git", "grupo": "Desenvolvimento", "rotulo": "Git" },
+    { "id": "GitHub.cli", "comando": "gh", "grupo": "Desenvolvimento", "rotulo": "GitHub CLI" },
+    { "id": "OpenJS.NodeJS.LTS", "comando": "node", "grupo": "Desenvolvimento", "rotulo": "Node.js LTS" },
+    { "id": "Python.Python.3.14", "comando": "python", "grupo": "Desenvolvimento", "rotulo": "Python 3.14", "override": "/quiet InstallAllUsers=1 TargetDir=C:\\Python314 PrependPath=1 Include_launcher=1 Include_pip=1" },
+    { "id": "Microsoft.VisualStudio.BuildTools", "minutos": 90, "grupo": "Desenvolvimento", "rotulo": "Build Tools C++", "override": "--quiet --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" },
+
+    { "id": "VideoLAN.VLC", "grupo": "Comunicação e mídia", "rotulo": "VLC" },
+
+    { "id": "Valve.Steam", "grupo": "Jogos", "rotulo": "Steam" },
+    { "id": "EpicGames.EpicGamesLauncher", "grupo": "Jogos", "rotulo": "Epic Games" },
+    { "id": "RiotGames.LeagueOfLegends.BR", "minutos": 60, "grupo": "Jogos", "rotulo": "League of Legends" }
+  ],
+  "usuario": [
+    { "id": "astral-sh.uv", "comando": "uv", "grupo": "Desenvolvimento", "rotulo": "uv" },
+    { "id": "Oven-sh.Bun", "comando": "bun", "grupo": "Desenvolvimento", "rotulo": "Bun" },
+    { "id": "Microsoft.VisualStudioCode", "comando": "code", "escopo": "user", "grupo": "Desenvolvimento", "rotulo": "VS Code" },
+    { "id": "StablyAI.Orca", "grupo": "Desenvolvimento", "rotulo": "Orca" },
+    { "id": "Docker.sbx", "grupo": "Desenvolvimento", "rotulo": "Docker Sandboxes" },
+
+    { "id": "Anthropic.Claude", "grupo": "Inteligência artificial", "rotulo": "Claude" },
+    { "id": "Anthropic.ClaudeCode", "comando": "claude", "grupo": "Inteligência artificial", "rotulo": "Claude Code" },
+    { "id": "OpenAI.Codex", "comando": "codex", "grupo": "Inteligência artificial", "rotulo": "Codex CLI" },
+    { "id": "OpenAI.ChatGPT", "grupo": "Inteligência artificial", "rotulo": "ChatGPT e Codex" },
+
+    { "id": "Microsoft.OneDrive", "grupo": "Navegador e utilitários", "rotulo": "OneDrive" },
+    { "id": "Skillbrains.Lightshot", "grupo": "Navegador e utilitários", "rotulo": "Lightshot" },
+
+    { "id": "Discord.Discord", "grupo": "Comunicação e mídia", "rotulo": "Discord" },
+    { "id": "Spotify.Spotify", "grupo": "Comunicação e mídia", "rotulo": "Spotify" },
+    { "id": "Obsidian.Obsidian", "grupo": "Comunicação e mídia", "rotulo": "Obsidian" },
+    { "id": "XP9B0BH6T8Z7KZ", "nome": "Voicemod", "fonte": "msstore", "grupo": "Comunicação e mídia", "rotulo": "Voicemod" },
+
+    { "id": "PrismLauncher.PrismLauncher", "grupo": "Jogos", "rotulo": "Prism Launcher" }
+  ],
+  "npm": ["pnpm", "vercel", "discloud-cli", "@nanonets/graft", "typescript", "typescript-language-server", "@jpisnice/shadcn-ui-mcp-server"],
+  "pip": ["code-review-graph", "graphifyy", "markitdown", "pdfplumber", "pymupdf", "pypdf", "python-pptx", "pyright", "pyperclip", "keyring"],
+  "uv_python": ["3.12", "3.13"],
+  "marketplaces": ["anthropics/claude-plugins-official", "thedotmack/claude-mem", "headroomlabs-ai/headroom", "multica-ai/andrej-karpathy-skills", "greensock/gsap-skills"],
+  "plugins": [
+    "feature-dev@claude-plugins-official", "code-review@claude-plugins-official", "security-guidance@claude-plugins-official",
+    "pyright-lsp@claude-plugins-official", "typescript-lsp@claude-plugins-official", "frontend-design@claude-plugins-official",
+    "hookify@claude-plugins-official", "skill-creator@claude-plugins-official", "claude-code-setup@claude-plugins-official",
+    "claude-md-management@claude-plugins-official", "claude-security@claude-plugins-official", "project-artifact@claude-plugins-official",
+    "superpowers@claude-plugins-official", "figma@claude-plugins-official", "claude-mem@thedotmack",
+    "headroom@headroom-marketplace", "andrej-karpathy-skills@karpathy-skills", "gsap-skills@gsap-skills"
+  ],
+  "vscode": [
+    "davidanson.vscode-markdownlint", "ecmel.vscode-html-css", "formulahendry.code-runner", "github.vscode-pull-request-github",
+    "icrawl.discord-vscode", "ms-python.debugpy", "ms-python.python", "ms-python.vscode-pylance", "ms-python.vscode-python-envs",
+    "ms-toolsai.jupyter", "ms-toolsai.jupyter-keymap", "ms-toolsai.jupyter-renderers", "ms-toolsai.vscode-jupyter-cell-tags",
+    "ms-toolsai.vscode-jupyter-slideshow", "ms-vscode.cmake-tools", "ms-vscode.cpp-devtools", "ms-vscode.cpptools",
+    "ms-vscode.cpptools-extension-pack", "ms-vscode.cpptools-themes", "ms-vscode.powershell", "redhat.vscode-yaml",
+    "ritwickdey.liveserver", "vscode-icons-team.vscode-icons", "xabikos.javascriptsnippets"
+  ],
+  "manual": [
+    { "nome": "Driver da placa de vídeo", "motivo": "instale pelo Windows Update ou pelo site do fabricante" }
+  ],
+  "catalogo": [
+  {"grupo":"IA: assistentes e modelos locais","itens":[["Ollama.Ollama","Ollama"],["ElementLabs.LMStudio","LM Studio"],["Jan.Jan","Jan"],["Perplexity.Comet","Perplexity Comet"]]},
+  {"grupo":"IA: editores e agentes de código","itens":[["Anysphere.Cursor","Cursor"],["Codeium.Windsurf","Windsurf"],["Google.Antigravity","Google Antigravity"],["ZedIndustries.Zed","Zed"],["SST.opencode","opencode"],["npm:@google/gemini-cli","Gemini CLI"],["npm:@qwen-code/qwen-code","Qwen Code"],["uv:aider-chat","Aider"],["uv:llm","LLM CLI"],["uv:huggingface-hub","Hugging Face CLI"]]},
+  {"grupo":"IA: imagem, áudio e vídeo","itens":[["Comfy.ComfyUI-Desktop","ComfyUI"],["Upscayl.Upscayl","Upscayl"],["KDE.Krita","Krita"],["ChidiWilliams.Buzz","Buzz (Whisper)"]]},
+  {"grupo":"Desenvolvimento e DevOps","itens":[["Docker.DockerDesktop","Docker Desktop"],["GitHub.GitHubDesktop","GitHub Desktop"],["JetBrains.Toolbox","JetBrains Toolbox"],["Notepad++.Notepad++","Notepad++"],["Microsoft.VisualStudio.Community","Visual Studio Community"],["Neovim.Neovim","Neovim"],["Rustlang.Rustup","Rust (rustup)"],["GoLang.Go","Go"],["EclipseAdoptium.Temurin.21.JDK","Java 21 JDK"],["Microsoft.DotNet.SDK.10",".NET 10 SDK"],["Kubernetes.kubectl","kubectl"],["Hashicorp.Terraform","Terraform"],["Amazon.AWSCLI","AWS CLI"],["Google.CloudSDK","Google Cloud SDK"],["Microsoft.AzureCLI","Azure CLI"],["Postman.Postman","Postman"],["Insomnia.Insomnia","Insomnia"],["Bruno.Bruno","Bruno"],["Microsoft.SQLServerManagementStudio","SQL Server Mgmt Studio"],["MongoDB.Compass.Full","MongoDB Compass"],["Figma.Figma","Figma"],["Warp.Warp","Warp"],["WinMerge.WinMerge","WinMerge"]]},
+  {"grupo":"Rede e segurança","itens":[["WiresharkFoundation.Wireshark","Wireshark"],["Insecure.Nmap","Nmap"],["PuTTY.PuTTY","PuTTY"],["WinSCP.WinSCP","WinSCP"],["Cloudflare.cloudflared","cloudflared"],["Cloudflare.Warp","Cloudflare WARP"],["Tailscale.Tailscale","Tailscale"],["WireGuard.WireGuard","WireGuard"],["Proton.ProtonVPN","Proton VPN"],["Bitwarden.Bitwarden","Bitwarden"],["KeePassXCTeam.KeePassXC","KeePassXC"],["Malwarebytes.Malwarebytes","Malwarebytes"],["Microsoft.Sysinternals.Suite","Sysinternals Suite"]]},
+  {"grupo":"Sistema e hardware","itens":[["Microsoft.PowerToys","PowerToys"],["voidtools.Everything","Everything"],["CPUID.CPU-Z","CPU-Z"],["CPUID.HWMonitor","HWMonitor"],["REALiX.HWiNFO","HWiNFO"],["CrystalDewWorld.CrystalDiskInfo","CrystalDiskInfo"],["CrystalDewWorld.CrystalDiskMark","CrystalDiskMark"],["TechPowerUp.GPU-Z","GPU-Z"],["Guru3D.Afterburner","MSI Afterburner"],["Rufus.Rufus","Rufus"],["Ventoy.Ventoy","Ventoy"],["BleachBit.BleachBit","BleachBit"],["AntibodySoftware.WizTree","WizTree"],["RevoUninstaller.RevoUninstaller","Revo Uninstaller"],["Klocman.BulkCrapUninstaller","BCUninstaller"],["AnyDesk.AnyDesk","AnyDesk"],["Parsec.Parsec","Parsec"]]},
+  {"grupo":"Produtividade e navegadores","itens":[["Mozilla.Firefox","Firefox"],["Brave.Brave","Brave"],["Vivaldi.Vivaldi","Vivaldi"],["Opera.Opera","Opera"],["Notion.Notion","Notion"],["TheDocumentFoundation.LibreOffice","LibreOffice"],["Adobe.Acrobat.Reader.64-bit","Adobe Reader"],["SumatraPDF.SumatraPDF","SumatraPDF"],["Telegram.TelegramDesktop","Telegram"],["SlackTechnologies.Slack","Slack"],["Zoom.Zoom","Zoom"],["ShareX.ShareX","ShareX"],["qBittorrent.qBittorrent","qBittorrent"],["Google.GoogleDrive","Google Drive"],["Dropbox.Dropbox","Dropbox"]]},
+  {"grupo":"Criação e mídia","itens":[["OBSProject.OBSStudio","OBS Studio"],["BlenderFoundation.Blender","Blender"],["GIMP.GIMP.3","GIMP"],["Inkscape.Inkscape","Inkscape"],["HandBrake.HandBrake","HandBrake"],["Audacity.Audacity","Audacity"],["Gyan.FFmpeg","FFmpeg"],["yt-dlp.yt-dlp","yt-dlp"],["mpv.net","mpv.net"],["Stremio.Stremio","Stremio"]]},
+  {"grupo":"Mais jogos","itens":[["GOG.Galaxy","GOG Galaxy"],["ElectronicArts.EADesktop","EA app"],["Ubisoft.Connect","Ubisoft Connect"],["Blizzard.BattleNet","Battle.net"],["Nvidia.GeForceNow","GeForce NOW"],["Playnite.Playnite","Playnite"]]}
+]
+}

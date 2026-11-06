@@ -1,0 +1,85 @@
+WINDOWS 11 PRO PELO RUFUS - PASSO A PASSO
+
+Windows11-Pro-Mateus.iso = ISO oficial da Microsoft + respostas automaticas + limpeza agressiva.
+INSTALADOR = programas, skills e configuracoes, para rodar depois de formatar.
+Vao so skills e configuracoes: nenhum projeto, conversa, login, token ou arquivo .env.
+
+1. GRAVAR COM O RUFUS (neste PC)
+   Dispositivo: confira que e o pendrive novo. Tudo nele sera apagado.
+   Selecao de boot: Windows11-Pro-Mateus.iso
+   Esquema de particao: GPT
+   Sistema de destino: UEFI (nao CSM)
+   Sistema de arquivos: deixe o que o Rufus escolher (NTFS)
+   Clique em Iniciar. Na janela de personalizacao do Windows, DESMARQUE TODAS as opcoes e clique em OK.
+   Importante: opcoes marcadas ali podem substituir as nossas respostas automaticas.
+   Depois do Rufus, copie a pasta INSTALADOR inteira para dentro do pendrive. Ela nao atrapalha a instalacao.
+
+2. NO PC QUE SERA FORMATADO, COM O WINDOWS DELE AINDA FUNCIONANDO
+   Conecte o pendrive e rode INSTALADOR\1-ANTES-DE-FORMATAR.cmd. Clique em Sim no aviso.
+   Ele NAO copia programas, logs nem arquivos pessoais. Leva somente:
+   - INSTALADOR\pc-alvo.txt: dados do hardware;
+   - INSTALADOR\programas-do-pc.txt: NOMES dos programas do catalogo do winget, para baixar a versao mais nova;
+   - INSTALADOR\drivers: so o driver das placas de rede fisicas, para o PC ter internet depois de formatar.
+   Abra programas-do-pc.txt e apague a linha do que nao quiser de volta. Programas fora do catalogo nao entram.
+   NAO apague o pendrive depois disso: a lista e o driver de rede so existem ali.
+
+3. TESTE SEM RISCO (recomendado)
+   Faca o passo 4 e pare na tela que pede o disco. Ate ali nada foi alterado.
+   Para sair sem instalar, feche o instalador e confirme, ou desligue o PC.
+
+4. INSTALAR O WINDOWS
+   Com o PC desligado e o pendrive conectado, ligue apertando a tecla do menu de boot:
+   normalmente F12, F11, F9, F8 ou Esc, conforme o fabricante. Escolha o pendrive, na opcao UEFI.
+   Aceite os termos da Microsoft.
+   Na tela de disco: apague TODAS as particoes do disco interno, sem deixar nenhuma, (tamanho em INSTALADOR\pc-alvo.txt),
+   selecione o espaco nao alocado e clique em Avancar. Nao mexa no pendrive nem em HD externo.
+   O PC reinicia sozinho algumas vezes. Nao aperte a tecla do menu de boot de novo.
+
+5. PRIMEIRO LOGIN
+   Entre na conta "mateu", sem senha. Uma janela roda a limpeza por alguns minutos: nao feche.
+   Reinicie depois que ela sumir.
+
+6. RODAR O upaiva.dev
+   Abra a pasta INSTALADOR no pendrive e de dois cliques em upaiva.dev.exe, sem "Executar como administrador".
+   Clique em Sim quando o Windows pedir. Se o Windows avisar que o app e desconhecido (ele nao tem assinatura
+   digital), use Mais informacoes > Executar assim mesmo. Se preferir sem interface: 2-INSTALAR-TUDO.cmd.
+   Instalar: marque o que quer. O catalogo opcional vem desmarcado. Tudo na versao mais nova.
+   Drivers: busca no Windows Update e instala o que voce marcar. Para placa de video, use o site do fabricante.
+   Analisar: procura falhas de seguranca e de saude do PC. Nao muda nada; so corrige o que voce marcar.
+   Otimizar: niveis Leve, Media, Alta e Altissima. Use SIMULAR para ver o plano. REVERTER desfaz o que foi salvo.
+   Ferramentas: atualizar tudo, limpar disco, reparar sistema, resetar rede e criar ponto de restauracao.
+   Terminal: comandos reais, PID, codigo de saida e tempo de cada etapa.
+   Se a instalacao falhar em algo, rode de novo: ele refaz so o que faltou. Reinicie no final.
+   Nota: a ISO ja aplica a limpeza agressiva no primeiro login, equivalente ao nivel Alta. Para ficar mais leve
+   que isso, use REVERTER e depois escolha o nivel. Apps removidos voltam pela Microsoft Store.
+
+7. FINALIZAR
+   Confira a ativacao em Configuracoes > Sistema > Ativacao. Se o PC ja tinha licenca Pro digital,
+   ela ativa sozinha com internet. Se nao, coloque sua chave ali.
+   Crie uma senha em Configuracoes > Contas > Opcoes de entrada.
+   Faca login: Claude, claude (no terminal), Codex, GitHub (gh auth login), Chrome, Discord e os demais.
+   Instale o driver mais novo da placa de video, pelo Windows Update ou no site do fabricante.
+
+ATENCAO
+- Mantenha a conta local "mateu". Pode vincular sua conta Microsoft depois: a pasta C:\Users\mateu nao muda,
+  e os hooks do Claude e do Codex dependem desse caminho.
+- Se mudar skills ou configs neste PC antes de gravar, rode ATUALIZAR-CONFIGS.cmd antes de copiar INSTALADOR.
+
+LIMPEZA AGRESSIVA
+- Ficam desligados: Windows Search (a busca do Menu Iniciar fica limitada), impressao, Xbox e SysMain.
+- Foram removidos: Copilot, Widgets, Teams, Outlook novo, Clipchamp, apps Bing, Xbox App e outros.
+- Continuam ligados: Defender, Firewall, Windows Update, TPM, Secure Boot e VBS.
+- Para desfazer: INSTALADOR\REVERTER-LIMPEZA.cmd. Apps removidos voltam pela Microsoft Store.
+
+SE DER PROBLEMA
+- Rufus recusou a ISO, ou a instalacao pediu idioma, conta ou chave como se nao tivesse configuracao:
+  grave a ISO oficial, que esta em C:\Users\mateu\iso-oficial, e copie para a raiz do pendrive o conteudo
+  da pasta se-o-rufus-recusar-a-iso, mantendo as subpastas.
+- Erro de seguranca ao iniciar pelo pendrive: desligue o Secure Boot na BIOS so durante a instalacao
+  e ligue de novo depois.
+- O instalador recusou o PC: o Windows 11 exige TPM 2.0, Secure Boot e processador compativel.
+- League of Legends com erro VAN9001 ou VAN9003: a Riot pede TPM 2.0 e Secure Boot ligados.
+- Nao aparece disco na instalacao: na BIOS, confira se o disco esta em AHCI ou se a opcao de RAID esta desligada.
+- Sem internet depois de instalar: rode 2-INSTALAR-TUDO.cmd, que instala os drivers antes de pedir internet.
+  Se os drivers nao foram copiados no passo 2, use cabo de rede ou o celular roteando por USB.
+- Logs: C:\Users\mateu\SetupMateus\logs   Relatorio: C:\Users\mateu\SetupMateus\relatorio.txt

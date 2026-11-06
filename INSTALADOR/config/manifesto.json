@@ -1,0 +1,88 @@
+{
+  "gerado": "2026-11-06T13:21:35",
+  "arquivos": 3556,
+  "bytes": 31478877.0,
+  "sha256": "4F4BE0850D18C192E6AEE0655FA486B8CBF8100A663CA0A6C3B63209FF5156D6",
+  "junctions": [
+    {
+      "link": ".claude\\skills\\cavecrew",
+      "alvo": ".agents\\skills\\cavecrew"
+    },
+    {
+      "link": ".claude\\skills\\caveman",
+      "alvo": ".agents\\skills\\caveman"
+    },
+    {
+      "link": ".claude\\skills\\caveman-commit",
+      "alvo": ".agents\\skills\\caveman-commit"
+    },
+    {
+      "link": ".claude\\skills\\caveman-compress",
+      "alvo": ".agents\\skills\\caveman-compress"
+    },
+    {
+      "link": ".claude\\skills\\caveman-discover",
+      "alvo": ".agents\\skills\\caveman-discover"
+    },
+    {
+      "link": ".claude\\skills\\caveman-evidence-review",
+      "alvo": ".agents\\skills\\caveman-evidence-review"
+    },
+    {
+      "link": ".claude\\skills\\caveman-explore",
+      "alvo": ".agents\\skills\\caveman-explore"
+    },
+    {
+      "link": ".claude\\skills\\caveman-help",
+      "alvo": ".agents\\skills\\caveman-help"
+    },
+    {
+      "link": ".claude\\skills\\caveman-learn",
+      "alvo": ".agents\\skills\\caveman-learn"
+    },
+    {
+      "link": ".claude\\skills\\caveman-manage",
+      "alvo": ".agents\\skills\\caveman-manage"
+    },
+    {
+      "link": ".claude\\skills\\caveman-optimize",
+      "alvo": ".agents\\skills\\caveman-optimize"
+    },
+    {
+      "link": ".claude\\skills\\caveman-review",
+      "alvo": ".agents\\skills\\caveman-review"
+    },
+    {
+      "link": ".claude\\skills\\caveman-setup",
+      "alvo": ".agents\\skills\\caveman-setup"
+    },
+    {
+      "link": ".claude\\skills\\caveman-stats",
+      "alvo": ".agents\\skills\\caveman-stats"
+    },
+    {
+      "link": ".claude\\skills\\investigate-first",
+      "alvo": ".agents\\skills\\investigate-first"
+    },
+    {
+      "link": ".claude\\skills\\lean-build",
+      "alvo": ".agents\\skills\\lean-build"
+    },
+    {
+      "link": ".claude\\skills\\migration",
+      "alvo": ".agents\\skills\\migration"
+    },
+    {
+      "link": ".claude\\skills\\safe-refactor",
+      "alvo": ".agents\\skills\\safe-refactor"
+    },
+    {
+      "link": ".claude\\skills\\surgical-patch",
+      "alvo": ".agents\\skills\\surgical-patch"
+    },
+    {
+      "link": ".claude\\skills\\verify-and-stop",
+      "alvo": ".agents\\skills\\verify-and-stop"
+    }
+  ]
+}

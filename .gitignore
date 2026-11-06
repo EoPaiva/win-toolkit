@@ -1,0 +1,16 @@
+dist/
+*.iso
+*.wim
+*.swm
+.env
+.env.*
+*.log
+INSTALADOR/binarios/*
+!INSTALADOR/binarios/.gitkeep
+INSTALADOR/pacotes/*
+!INSTALADOR/pacotes/.gitkeep
+INSTALADOR/drivers/*
+!INSTALADOR/drivers/.gitkeep
+INSTALADOR/pc-alvo.txt
+INSTALADOR/programas-do-pc.txt
+INSTALADOR/upaiva.dev.exe

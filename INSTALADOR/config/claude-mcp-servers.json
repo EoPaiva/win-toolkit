@@ -1,0 +1,42 @@
+{
+  "graft": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@nanonets/graft",
+      "mcp"
+    ]
+  },
+  "codebase-memory-mcp": {
+    "command": "C:/Users/mateu/AppData/Local/Programs/codebase-memory-mcp/codebase-memory-mcp.exe",
+    "args": []
+  },
+  "playwright": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@playwright/mcp@latest"
+    ],
+    "env": {}
+  },
+  "headroom": {
+    "type": "stdio",
+    "command": "C:\\Users\\mateu\\.local\\bin\\headroom.EXE",
+    "args": [
+      "mcp",
+      "serve"
+    ],
+    "env": {}
+  },
+  "shadcn-ui": {
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "C:/Users/mateu/AppData/Roaming/npm/node_modules/@jpisnice/shadcn-ui-mcp-server/build/index.js",
+      "--framework",
+      "react"
+    ],
+    "env": {}
+  }
+}

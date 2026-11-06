@@ -1,0 +1,480 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T21:35:37Z",
+  "title": "Design System: upaiva.dev",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Ink White",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "signal-red": {
+        "role": "secondary",
+        "displayName": "Signal Red",
+        "canonical": "oklch(71.2% 0.181 22.8)",
+        "tonalRamp": [
+          "#1F0002",
+          "#4C010A",
+          "#7F0217",
+          "#B11D2C",
+          "#D9484C",
+          "#FE7371",
+          "#FEB3AE",
+          "#FEE9E7"
+        ]
+      },
+      "void-black": {
+        "role": "neutral",
+        "displayName": "Void Black",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "terminal-black": {
+        "role": "neutral",
+        "displayName": "Terminal Black",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "press-fill": {
+        "role": "neutral",
+        "displayName": "Press Fill",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "mark-gray": {
+        "role": "neutral",
+        "displayName": "Mark Gray",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "dim": {
+        "role": "neutral",
+        "displayName": "Dim",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Soft",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "canonical": "#CC000000 (WPF ARGB)",
+        "tonalRamp": [
+          "#141414",
+          "#1C1C1C",
+          "#2A2A2A",
+          "#5C5C5C",
+          "#7A7A7A",
+          "#8C8C8C",
+          "#D4D4D4",
+          "#FFFFFF"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "section-number": {
+        "displayName": "Section Number",
+        "purpose": "Thin number at the head of each view. Appears nowhere else."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Two-line view title; first line Ink, second line Muted."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Optimization level names."
+      },
+      "confirm-title": {
+        "displayName": "Confirm Title",
+        "purpose": "The question in a confirmation overlay."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "upaiva.dev at the left of the navigation."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Maintenance routine names in hairline rows."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Row titles, checkbox labels and summaries."
+      },
+      "body-long": {
+        "displayName": "Body Long",
+        "purpose": "Level descriptions and confirmation text."
+      },
+      "body-small": {
+        "displayName": "Body Small",
+        "purpose": "Item names in the run queue."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase. The tracked label above the title, and list group names."
+      },
+      "nav": {
+        "displayName": "Navigation",
+        "purpose": "Uppercase. Top navigation tabs."
+      },
+      "button-primary": {
+        "displayName": "Primary Button",
+        "purpose": "Uppercase. White pill label."
+      },
+      "button-pill": {
+        "displayName": "Outline Button",
+        "purpose": "Uppercase. Outline pill label."
+      },
+      "status": {
+        "displayName": "Status",
+        "purpose": "Uppercase. Severity words in the findings column."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Terminal output, telemetry and command detail lines."
+      },
+      "mono-input": {
+        "displayName": "Mono Input",
+        "purpose": "Typed input and its placeholder."
+      },
+      "mono-output": {
+        "displayName": "Mono Output",
+        "purpose": "Ctrl K palette output."
+      },
+      "mono-small": {
+        "displayName": "Mono Small",
+        "purpose": "Counts, level numbers and queue detail."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "view-fade",
+        "value": "opacity 0.2 to 1, 180ms, exponential ease-out",
+        "purpose": "Content fade when the view changes."
+      },
+      {
+        "name": "press-scale",
+        "value": "scale(0.98)",
+        "purpose": "Primary pill while pressed, with no transition."
+      },
+      {
+        "name": "planet-rest",
+        "value": "0.0035 rad per 36ms tick",
+        "purpose": "Planet rotation when nothing runs."
+      },
+      {
+        "name": "planet-running",
+        "value": "0.011 rad per 36ms tick",
+        "purpose": "Planet rotation while a process runs."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "SystemParameters.ClientAreaAnimation = false",
+        "purpose": "The planet holds still."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Pill",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action of a view, labeled with the real action and count.",
+      "html": "<div class=\"ds-primary-stage\"><button class=\"ds-btn-primary\"><span>INSTALAR 61 ITENS</span><svg width=\"9\" height=\"9\" viewBox=\"0 0 9 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" aria-hidden=\"true\"><path d=\"M0.5,8.5 L8.5,0.5 M2.2,0.5 L8.5,0.5 L8.5,6.8\"/></svg></button><button class=\"ds-btn-primary\" disabled><span>EM EXECUÇÃO</span></button></div>",
+      "css": ".ds-primary-stage{background:#000000;padding:24px;display:flex;gap:8px}.ds-btn-primary{height:42px;padding:0 22px;border:0;border-radius:21px;background:#FFFFFF;color:#000000;font:500 11.5px 'Inter Medium','Inter','Segoe UI Semibold',sans-serif;letter-spacing:2.3px;display:inline-flex;align-items:center;gap:9px;cursor:pointer}.ds-btn-primary:hover{background:#D4D4D4}.ds-btn-primary:active{transform:scale(.98)}.ds-btn-primary:focus-visible{outline:1px solid #FFFFFF;outline-offset:3px;}.ds-btn-primary:disabled{background:#141414;color:#7A7A7A;cursor:default}.ds-btn-primary:disabled:active{transform:none}"
+    },
+    {
+      "name": "Outline Pill",
+      "kind": "button",
+      "refersTo": "button-pill",
+      "description": "Every action that is not the primary one.",
+      "html": "<div class=\"ds-pill-stage\"><button class=\"ds-btn-pill\">SIMULAR O PLANO</button><button class=\"ds-btn-pill\">REVERTER TUDO</button><button class=\"ds-btn-pill\" disabled>RODAR</button></div>",
+      "css": ".ds-pill-stage{background:#000000;padding:24px;display:flex;gap:8px}.ds-btn-pill{height:32px;padding:0 14px;border:1px solid #2A2A2A;border-radius:16px;background:transparent;color:#D4D4D4;font:500 10.5px 'Inter Medium','Inter','Segoe UI Semibold',sans-serif;letter-spacing:2px;cursor:pointer}.ds-btn-pill:hover{border-color:#8C8C8C;color:#FFFFFF}.ds-btn-pill:active{background:#141414}.ds-btn-pill:focus-visible{outline:1px solid #FFFFFF;outline-offset:3px;}.ds-btn-pill:disabled{border-color:#2A2A2A;color:#7A7A7A;cursor:default}"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Wordmark, centered tracked tabs and the Ctrl K pill. Tone alone marks the current view.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-mark\">upaiva.dev</span><div class=\"ds-nav-tabs\"><a class=\"ds-nav-tab ds-nav-tab-on\" href=\"#\">INSTALAR</a><a class=\"ds-nav-tab\" href=\"#\">DRIVERS</a><a class=\"ds-nav-tab\" href=\"#\">ANALISAR</a><a class=\"ds-nav-tab\" href=\"#\">OTIMIZAR</a></div><button class=\"ds-nav-k\">&gt;_ CTRL K</button></nav>",
+      "css": ".ds-nav{background:#000000;height:66px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:24px}.ds-nav-mark{color:#FFFFFF;font:300 23px 'Inter Display Light','Inter Display','Segoe UI Light',sans-serif;letter-spacing:-.7px}.ds-nav-tabs{display:flex;gap:30px}.ds-nav-tab{color:#8C8C8C;font:500 11.5px 'Inter Medium','Inter','Segoe UI Semibold',sans-serif;letter-spacing:2.5px;padding:8px 0;text-decoration:none}.ds-nav-tab:hover,.ds-nav-tab-on{color:#FFFFFF}.ds-nav-tab:focus-visible{outline:1px solid #FFFFFF;outline-offset:3px;}.ds-nav-k{height:32px;padding:0 14px;border:1px solid #2A2A2A;border-radius:16px;background:transparent;color:#D4D4D4;font:500 10.5px 'Inter Medium','Inter','Segoe UI Semibold',sans-serif;letter-spacing:2px;cursor:pointer}.ds-nav-k:hover{border-color:#8C8C8C;color:#FFFFFF}.ds-nav-k:focus-visible{outline:1px solid #FFFFFF;outline-offset:3px;}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Mono input on a single rule that turns white on focus.",
+      "html": "<div class=\"ds-search-stage\"><input class=\"ds-search\" placeholder=\"buscar programa\" aria-label=\"Buscar programa\"></div>",
+      "css": ".ds-search-stage{background:#000000;padding:24px}.ds-search{width:276px;height:32px;background:transparent;border:0;border-bottom:1px solid #2A2A2A;color:#FFFFFF;caret-color:#FFFFFF;font:400 13px 'Cascadia Mono',Consolas,monospace;outline:none}.ds-search::placeholder{color:#7A7A7A}.ds-search:focus{border-bottom-color:#FFFFFF}.ds-search::selection{background:#8C8C8C}"
+    },
+    {
+      "name": "Selection Checkbox",
+      "kind": "custom",
+      "refersTo": "checkbox",
+      "description": "Square mark with a drawn check; the box border is non-text Mark Gray.",
+      "html": "<div class=\"ds-check-stage\"><label class=\"ds-check\"><input type=\"checkbox\" checked><span class=\"ds-check-box\"></span><span>Google Chrome</span></label><label class=\"ds-check\"><input type=\"checkbox\"><span class=\"ds-check-box\"></span><span>Desligar Integridade de Memória</span></label></div>",
+      "css": ".ds-check-stage{background:#000000;padding:24px;display:grid;gap:8px}.ds-check{display:flex;align-items:center;gap:10px;color:#8C8C8C;font:400 13px 'Inter','Segoe UI',sans-serif;cursor:pointer}.ds-check input{position:absolute;opacity:0}.ds-check-box{width:13px;height:13px;box-sizing:border-box;border:1px solid #5C5C5C;border-radius:3px;background:center/11px 11px no-repeat}.ds-check:hover{color:#FFFFFF}.ds-check:hover .ds-check-box{border-color:#D4D4D4}.ds-check input:checked+.ds-check-box{background-color:#FFFFFF;border-color:#FFFFFF;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M1.8,5.4 L4.4,8 L9.2,2.8'/%3E%3C/svg%3E\")}.ds-check:has(input:checked){color:#D4D4D4}.ds-check input:focus-visible+.ds-check-box{outline:1px solid #FFFFFF;outline-offset:3px;}"
+    },
+    {
+      "name": "Section Header",
+      "kind": "custom",
+      "refersTo": "section-number",
+      "description": "The owner's brand device: thin number, tracked label, two-line title. Opens every view.",
+      "html": "<header class=\"ds-head\"><span class=\"ds-head-num\">01</span><div><div class=\"ds-head-label\">PROGRAMAS E DEPENDÊNCIAS</div><div class=\"ds-head-t1\">Escolha o que entra.</div><div class=\"ds-head-t2\">Tudo na versão mais nova.</div></div></header>",
+      "css": ".ds-head{background:#000000;border-top:1px solid #1C1C1C;padding:24px;display:flex}.ds-head-num{width:104px;flex:none;color:#FFFFFF;font:100 58px/1.12 'Inter Display Thin','Inter Display','Segoe UI Light',sans-serif;letter-spacing:-2px;margin-top:-6px}.ds-head-label{color:#8C8C8C;font:500 10.5px/1.12 'Inter Medium','Inter','Segoe UI Semibold',sans-serif;letter-spacing:3px;margin:2px 0 12px 1px}.ds-head-t1,.ds-head-t2{font:300 42px/1.12 'Inter Display Light','Inter Display','Segoe UI Light',sans-serif;letter-spacing:-1.5px}.ds-head-t1{color:#FFFFFF}.ds-head-t2{color:#8C8C8C}"
+    },
+    {
+      "name": "Hairline Row",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "The list unit: a top hairline directly on black, with no card around it.",
+      "html": "<div class=\"ds-rows\"><div class=\"ds-row\"><div><div class=\"ds-row-title\">Limpar disco</div><div class=\"ds-row-detail\">purge %TEMP% e %WINDIR%\\Temp, DISM /StartComponentCleanup</div></div><button class=\"ds-row-btn\">RODAR</button></div><div class=\"ds-row\"><div><div class=\"ds-row-title\">Reparar sistema</div><div class=\"ds-row-detail\">DISM /RestoreHealth, sfc /scannow. Pode levar 30 minutos.</div></div><button class=\"ds-row-btn\">RODAR</button></div></div>",
+      "css": ".ds-rows{background:#000000;padding:24px}.ds-row{border-top:1px solid #1C1C1C;padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:24px}.ds-row-title{color:#FFFFFF;font:300 21px/1.12 'Inter Display Light','Inter Display','Segoe UI Light',sans-serif;letter-spacing:-.5px}.ds-row-detail{color:#8C8C8C;font:400 11.5px 'Cascadia Mono',Consolas,monospace;margin-top:3px}.ds-row-btn{height:32px;padding:0 14px;border:1px solid #2A2A2A;border-radius:16px;background:transparent;color:#D4D4D4;font:500 10.5px 'Inter Medium','Inter','Segoe UI Semibold',sans-serif;letter-spacing:2px;cursor:pointer}.ds-row-btn:hover{border-color:#8C8C8C;color:#FFFFFF}.ds-row-btn:active{background:#141414}.ds-row-btn:focus-visible{outline:1px solid #FFFFFF;outline-offset:3px;}"
+    },
+    {
+      "name": "Level Selector",
+      "kind": "custom",
+      "refersTo": "level-selector",
+      "description": "Single-choice columns under a top rule that lights when selected.",
+      "html": "<div class=\"ds-levels\"><button class=\"ds-level\"><span class=\"ds-level-n\">01</span><span class=\"ds-level-name\">Leve</span><span class=\"ds-level-risk\">Sem perda de função</span></button><button class=\"ds-level ds-level-on\"><span class=\"ds-level-n\">02</span><span class=\"ds-level-name\">Média</span><span class=\"ds-level-risk\">Risco baixo</span></button></div>",
+      "css": ".ds-levels{background:#000000;padding:24px;display:grid;grid-template-columns:1fr 1fr}.ds-level{all:unset;box-sizing:border-box;display:block;cursor:pointer;border-top:1px solid #2A2A2A;padding:16px 22px 14px 0}.ds-level:hover{border-top-color:#8C8C8C}.ds-level:focus-visible{outline:1px solid #FFFFFF;outline-offset:3px;}.ds-level-on,.ds-level-on:hover{border-top:2px solid #FFFFFF}.ds-level-n{display:block;color:#7A7A7A;font:400 11px 'Cascadia Mono',Consolas,monospace;margin-bottom:8px}.ds-level-name{display:block;color:#8C8C8C;font:300 32px/1.12 'Inter Display Light','Inter Display','Segoe UI Light',sans-serif;letter-spacing:-1px;margin-bottom:8px}.ds-level-on .ds-level-name{color:#FFFFFF}.ds-level-risk{display:block;color:#D4D4D4;font:400 13px 'Inter','Segoe UI',sans-serif}"
+    },
+    {
+      "name": "Run Queue",
+      "kind": "custom",
+      "refersTo": "queue-item",
+      "description": "The honest status vocabulary: waiting, running, done, simulated, failed, did not run.",
+      "html": "<ul class=\"ds-queue\"><li class=\"ds-q-ok\"><b>[OK]</b><span>Google Chrome</span><i>1m 12s</i></li><li class=\"ds-q-sim\"><b>[SIM]</b><span>Desligar Recall</span><i></i></li><li class=\"ds-q-bad\"><b>[!!]</b><span>XNA Framework</span><i>não aparece no winget (código 1460)</i></li><li class=\"ds-q-now\"><b>[&gt;&gt;]</b><span>Discord</span><i></i></li><li class=\"ds-q-wait\"><b>[..]</b><span>Build Tools C++</span><i></i></li><li class=\"ds-q-off\"><b>[--]</b><span>Spotify</span><i>não rodou</i></li></ul>",
+      "css": ".ds-queue{background:#000000;margin:0;padding:24px;list-style:none;display:grid;gap:5px}.ds-queue li{display:flex;align-items:center;gap:0;color:#D4D4D4;font:400 12.5px 'Inter','Segoe UI',sans-serif}.ds-queue b{width:38px;flex:none;font:400 11.5px 'Cascadia Mono',Consolas,monospace}.ds-queue span{flex:1;padding-left:4px}.ds-queue i{color:#8C8C8C;font:400 11px 'Cascadia Mono',Consolas,monospace;margin-left:10px}.ds-q-now,.ds-q-now b{color:#FFFFFF}.ds-q-bad,.ds-q-bad b{color:#FF6B6B}.ds-queue .ds-q-wait,.ds-queue .ds-q-wait b,.ds-queue .ds-q-off,.ds-queue .ds-q-off b{color:#7A7A7A}"
+    },
+    {
+      "name": "Terminal Window",
+      "kind": "custom",
+      "refersTo": "terminal-window",
+      "description": "Three static dots and a mono title; holds run output, the Ctrl K palette and confirmations.",
+      "html": "<div class=\"ds-term-stage\"><div class=\"ds-term\"><div class=\"ds-term-bar\"><span class=\"ds-term-dot ds-term-dot-a\"></span><span class=\"ds-term-dot ds-term-dot-b\"></span><span class=\"ds-term-dot ds-term-dot-c\"></span><span class=\"ds-term-title\">upaiva@windows: ~</span></div><div class=\"ds-term-body\"><div><i>18:24:47</i><span class=\"ds-t-soft\">[....] Programa Discord.Discord</span></div><div><i>18:24:47</i><span class=\"ds-t-ink\">$ winget.exe install --id \"Discord.Discord\" --exact --silent</span></div><div><i>18:24:47</i><span>proc.spawn pid=18244 timeout=25m</span></div><div><i>18:24:47</i><span class=\"ds-t-dim\">  | Successfully verified installer hash</span></div><div><i>18:24:47</i><span class=\"ds-t-bad\">[FALHOU] Programa Microsoft.XNARedist</span></div></div></div></div>",
+      "css": ".ds-term-stage{background:#000000;padding:24px}.ds-term{background:#050505;border:1px solid #2A2A2A;border-radius:16px;overflow:hidden}.ds-term-bar{display:flex;align-items:center;border-bottom:1px solid #1C1C1C;padding:11px 16px}.ds-term-dot{width:7px;height:7px;box-sizing:border-box;border-radius:50%}.ds-term-dot-a{background:#FFFFFF}.ds-term-dot-b{background:#2A2A2A;margin:0 5px}.ds-term-dot-c{border:1px solid #2A2A2A;margin-right:12px}.ds-term-title{color:#8C8C8C;font:400 11.5px 'Cascadia Mono',Consolas,monospace}.ds-term-body{padding:10px 12px;color:#8C8C8C;font:400 11.5px/17px 'Cascadia Mono',Consolas,monospace}.ds-term-body i{font-style:normal;color:#7A7A7A;margin-right:12px}.ds-term-body span{white-space:pre-wrap}.ds-t-ink{color:#FFFFFF}.ds-t-soft{color:#D4D4D4}.ds-t-dim{color:#7A7A7A}.ds-t-bad{color:#FF6B6B}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Planet That Tells the Truth",
+    "overview": "upaiva.dev is the owner's personal site, https://upaiva.dev, operating a Windows PC: a true black field, white type, hairlines and one particle planet. Everything on screen is real. Commands, PIDs, exit codes and telemetry come from the machine and the run log. The planet is the only decoration, and even it reports the truth when something runs.\n\nThe system is dense but quiet, built for a technical reader in a fixed 1280 by 800 window. Hierarchy comes from scale and tone rather than surfaces: a thin 58px number and light 42px titles sit over long lists on hairlines at 13px, and white is spent on whatever is current, selected or about to happen. Machine output speaks in mono; people get plain sentences in Inter.\n\nThe owner named the site as the style to follow, and its thin section numbers and tracked labels above titles are kept here as the owner's brand. Confirmed rejections: gradients on surfaces, neon, glass, sidebars, cards around lists and conventional progress rings.",
+    "keyCharacteristics": [
+      "Monochrome on true black, with one red that only reports failure.",
+      "Thin section number, tracked label and two-line title at the head of every view.",
+      "Hairline rows in place of cards.",
+      "One white pill with an arrow for the primary action; outline pills for the rest.",
+      "A terminal window with three dots for machine output, the Ctrl K palette and confirmations.",
+      "A particle planet whose inner orbit reports real progress and nothing else."
+    ],
+    "rules": [
+      {
+        "name": "The One Signal Rule",
+        "body": "Red means failure, a critical or high finding, or a blocking notice. It is never an accent, a hover or a warning that an action is serious: Reverter tudo is still an outline pill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dim Floor Rule",
+        "body": "Dim (#7A7A7A) is the lowest tone text may use, and it is a deliberate divergence from the site, whose dim is #5C5C5C. That value measures 3.14:1 on black and fails for text, so here it marks non-text only. Computed WCAG ratios for Dim: 4.89:1 on black, 4.75:1 on terminal black, 4.59:1 at the limb of the planet's halo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tight Title, Open Label Rule",
+        "body": "Display type closes up as it grows, from -0.5px at 21px to -2px at 58px. Labels open up, from +2px to +3px. WPF has no letter spacing, so every tracked string is drawn glyph by glyph through the `TextoTrack` element; a plain `TextBlock` cannot carry these roles.",
+        "section": "typography"
+      },
+      {
+        "name": "The Section Header Rule",
+        "body": "Every view opens with the same header: thin number, tracked label, two-line title with the second line in Muted. These are the owner's brand devices from the site, kept by explicit decision. The thin number appears nowhere else, and a tracked label elsewhere names a list group rather than topping a title.",
+        "section": "typography"
+      },
+      {
+        "name": "The Machine Voice Rule",
+        "body": "Cascadia Mono means the machine is speaking or being queried: commands, telemetry, counts, command details and typed input. Sentences written for a person stay in Inter.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline Row Rule",
+        "body": "A list is rows divided by a 1px top hairline directly on black. No card, no fill, no zebra.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Black Rule",
+        "body": "Nothing casts a shadow, and nothing blurs. An overlay separates from the page with the scrim and its border.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Only Light Rule",
+        "body": "Radial gradients exist only inside the planet. Every surface is one solid color.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Full Round Rule",
+        "body": "A pill's radius is always half its height. A control of any other height gets its radius recalculated, so a pill never reads as a rounded rectangle.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Lit Orbit Rule",
+        "body": "The inner orbit lights only from real progress, in proportion to completed work, and only while something runs. When nothing runs it goes dark: uniform dim dust with no bright arc, including right after a run ends.",
+        "section": "components"
+      },
+      {
+        "name": "The SIM Rule",
+        "body": "A simulation never reads as applied. The queue shows `[SIM]`, the terminal shows `[ sim ]`, the title ends \"Simulação concluída. Nada foi alterado.\", and neither the progress hairline nor the orbit ever fills.",
+        "section": "components"
+      },
+      {
+        "name": "The Did Not Run Rule",
+        "body": "Queue items that did not run are shown as such. Anything still waiting or running when a process ends becomes `[--]` \"não rodou\", and the title counts them. Never show them as done.",
+        "section": "components"
+      },
+      {
+        "name": "The Earned Bar Rule",
+        "body": "The footer hairline carries the same value as the orbit, capped at 99% while running. It reaches 100% only on a clean finish; otherwise it stays at what was really done.",
+        "section": "components"
+      },
+      {
+        "name": "The No Invented Number Rule",
+        "body": "Without a known total the title says \"Em andamento.\" and shows no percentage. A check that could not be read says NÃO LIDO, never OK.",
+        "section": "components"
+      },
+      {
+        "name": "The Safe Focus Rule",
+        "body": "Confirmations use the terminal window overlay with keyboard focus on the safe option, \"Voltar\", so a stray Enter applies nothing. Never a stock dialog.",
+        "section": "components"
+      },
+      {
+        "name": "The Last Stock Dialog Rule",
+        "body": "The only stock dialog is the fatal startup error, when no interface exists to carry it. Nothing else earns one.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do open every view with the thin number, tracked label and two-line title, second line in Muted (#8C8C8C).",
+      "Do keep at most one white pill per view, labeled with the real action and count, and make every other action an outline pill.",
+      "Do build lists as rows on 1px hairlines (#1C1C1C) directly on true black (#000000).",
+      "Do keep text at Dim (#7A7A7A) or brighter, and reserve Mark Gray (#5C5C5C) for non-text marks.",
+      "Do set commands, telemetry, counts and typed input in Cascadia Mono, and write sentences for people in Inter.",
+      "Do draw icons as thin paths, like the check and the diagonal arrow.",
+      "Do light the inner orbit and the footer hairline from the same real progress value, and darken the orbit when nothing runs.",
+      "Do send every confirmation through the terminal window overlay with focus on \"Voltar\"."
+    ],
+    "donts": [
+      "Don't put gradients on surfaces. The planet's own shading, halo and comet glow are the only gradients in the system.",
+      "Don't use neon, colored glow, glass, blur or shadows.",
+      "Don't add a sidebar or wrap a list in a card. A terminal window holds machine output; it is not a card.",
+      "Don't add progress rings or spinners. The planet's inner orbit is the only ring that reports progress.",
+      "Don't let decoration read as status: no lit orbit without a run, no state on the terminal dots.",
+      "Don't use Signal Red (#FF6B6B) for anything but failure, critical or high findings and blocking notices.",
+      "Don't show a simulation as applied, or fill the progress hairline or orbit during one.",
+      "Don't show a percentage without a known total, or mark an item that did not run as done.",
+      "Don't open a stock dialog for anything but the fatal startup error.",
+      "Don't add font glyph icons. The two window caption glyphs are the platform's own and stay there."
+    ]
+  }
+}

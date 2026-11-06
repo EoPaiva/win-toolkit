@@ -4,6 +4,7 @@ param([string]$Acao, [string[]]$Ids)
 if ($env:COMPUTERNAME -eq 'MARINETE') { Write-Log 'policy.deny host=MARINETE reason=source-of-configs: nada foi alterado' Red; exit 1 }
 
 function Passo([string]$nome, [scriptblock]$a) {
+    if (Test-Cancelado) { Write-Log "[cancelado] $nome"; return }
     Write-Log "[....] $nome"
     try {
         & $a
@@ -67,6 +68,26 @@ switch ($Acao) {
         Passo 'Checkpoint-Computer -RestorePointType MODIFY_SETTINGS' {
             Enable-ComputerRestore -Drive "$env:SystemDrive\"
             Checkpoint-Computer -Description 'upaiva.dev manual' -RestorePointType MODIFY_SETTINGS
+        }
+    }
+    'reinstalar-apps' {
+        # Os IDs foram conferidos na Microsoft Store. Dicas, Pacencia e Mapas nao estao la.
+        $loja = [ordered]@{
+            'Clipchamp.Clipchamp' = '9P1J8S7CCWWT'; 'Microsoft.BingNews' = '9WZDNCRFHVFW'; 'Microsoft.BingWeather' = '9WZDNCRFJ3Q2'; 'Microsoft.Copilot' = '9NHT9RB2F4HD'
+            'Microsoft.GamingApp' = '9MV0B5HZVK9Z'; 'Microsoft.GetHelp' = '9PKDZBMV1H3T'; 'Microsoft.MicrosoftOfficeHub' = '9WZDNCRD29V9'; 'Microsoft.OutlookForWindows' = '9NRX63209R7B'
+            'Microsoft.PowerAutomateDesktop' = '9NFTCH6J7FHV'; 'Microsoft.Todos' = '9NBLGGH5R558'; 'Microsoft.WindowsFeedbackHub' = '9NBLGGH4R32N'; 'Microsoft.WindowsSoundRecorder' = '9WZDNCRFHWKN'
+            'Microsoft.XboxGamingOverlay' = '9NZKPSTSNW4P'; 'Microsoft.YourPhone' = '9NMPJ99VJBWV'; 'MicrosoftCorporationII.QuickAssist' = '9P7BP5VNWKX5'; 'MSTeams' = 'XP8BT8DW290MPQ'
+            'MicrosoftWindows.Client.WebExperience' = '9MSSGKG348SP'; 'Microsoft.ZuneVideo' = '9WZDNCRFJ3P2'
+        }
+        $faltam = @($loja.Keys | Where-Object { -not (Get-AppxPackage -Name $_ -ErrorAction SilentlyContinue) })
+        Write-Log "@total $($faltam.Count)"
+        Write-Log "appx.scan known=$($loja.Count) missing=$($faltam.Count)"
+        if ($faltam.Count) { Wait-Internet; Initialize-Winget }
+        foreach ($a in $faltam) {
+            if (Test-Cancelado) { Write-Log "[cancelado] $a"; continue }
+            Write-Log "[....] $a"
+            $r = Install-Pacote ([pscustomobject]@{ id = $loja[$a]; fonte = 'msstore' })
+            if ($r -eq 'OK') { Write-Log "[ ok ] $a" } else { Write-Log "[FALHOU] $a - $r" Red }
         }
     }
     default { Write-Log "action.unknown $Acao" Red; exit 1 }

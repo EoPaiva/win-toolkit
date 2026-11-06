@@ -6,7 +6,7 @@ if ($env:COMPUTERNAME -eq 'MARINETE') { Write-Log 'PC de origem das configs: nad
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host 'Feche esta janela e abra 2-INSTALAR-TUDO.cmd com dois cliques, sem "Executar como administrador".' -ForegroundColor Yellow
+    Write-Host 'Feche esta janela e abra upaiva.dev.exe com dois cliques, sem "Executar como administrador".' -ForegroundColor Yellow
     Read-Host 'Enter para sair' | Out-Null
     exit 1
 }
@@ -160,7 +160,7 @@ Write-Log ''
 if ($falhas.Count -eq 0) {
     Write-Log 'Tudo instalado e conferido. Reinicie o PC.' Green
 } else {
-    Write-Log "$($falhas.Count) item(ns) falharam. Rode 2-INSTALAR-TUDO.cmd de novo: ele refaz so o que faltou." Yellow
+    Write-Log "$($falhas.Count) item(ns) falharam. Rode o upaiva.dev de novo: ele refaz so o que faltou." Yellow
 }
 Write-Log "Relatorio completo: $script:Relatorio"
 if (-not $env:SETUP_GUI) { Read-Host 'Enter para fechar' | Out-Null }

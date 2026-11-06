@@ -130,6 +130,7 @@ Write-Log '[ ok ] Checkpoint-Computer -RestorePointType MODIFY_SETTINGS'
 
 $copiaAtual = Ler-Copia
 foreach ($x in $acoes) {
+    if (Test-Cancelado) { Write-Log 'optimizer.cancelled: o que ja foi aplicado continua salvo no backup'; break }
     switch ($x.t) {
         'reg' {
             $prev = $null

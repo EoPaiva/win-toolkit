@@ -89,6 +89,7 @@ if ($guids.Count) {
     $r = $x.busca.Search($Consulta)
     $reiniciar = $false
     foreach ($g in $guids) {
+        if (Test-Cancelado) { Write-Log "[cancelado] $g"; continue }
         $u = $null; foreach ($c in $r.Updates) { if ($c.Identity.UpdateID -eq $g) { $u = $c; break } }
         if (-not $u) { Write-Log "[FALHOU] $g - nao esta mais disponivel no catalogo" Red; continue }
         $nome = $u.Title

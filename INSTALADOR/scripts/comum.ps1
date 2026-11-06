@@ -55,7 +55,9 @@ function Add-Resultado([string]$Situacao, [string]$Nome, [string]$Detalhe = '') 
     Add-Content -LiteralPath $script:Relatorio -Value ("{0,-6} {1}  {2}" -f $Situacao, $Nome, $Detalhe) -Encoding UTF8
 }
 
-# Uma etapa que falha fica registrada e as seguintes continuam. Rodar de novo refaz so as que nao terminaram.
+# O app cria cancelar.flag no botao Cancelar. O arquivo vale entre o processo comum e o elevado.
+function Test-Cancelado { Test-Path -LiteralPath (Join-Path $script:Dados 'cancelar.flag') }
+
 function Test-Pular([string]$Nome) {
     $arq = Join-Path $script:Dados 'pular.txt'
     if (-not (Test-Path -LiteralPath $arq)) { return $false }
@@ -63,9 +65,12 @@ function Test-Pular([string]$Nome) {
     return $false
 }
 
+# Uma etapa que falha fica registrada e as seguintes continuam. Rodar de novo refaz so as que nao terminaram.
+# Uma etapa que falha fica registrada e as seguintes continuam. Rodar de novo refaz so as que nao terminaram.
 function Invoke-Etapa([string]$Nome, [scriptblock]$Acao) {
+    if (Test-Cancelado) { Write-Log "[cancelado] $Nome" DarkGray; Add-Resultado 'CANCELADO' $Nome; return }
     if (Test-Pular $Nome) { Write-Log "[ignorado] $Nome" DarkGray; Add-Resultado 'PULADO' $Nome; return }
-    if (Test-Feito $Nome) { Write-Log "[pulado] $Nome (ja feito)" DarkGray; return }
+    if (Test-Feito $Nome) { Write-Log "[pulado] $Nome (já feito)" DarkGray; return }
     Write-Log "[....] $Nome" Cyan
     $ok = $false; $detalhe = ''
     try {
@@ -73,6 +78,10 @@ function Invoke-Etapa([string]$Nome, [scriptblock]$Acao) {
         if ($saida -is [array]) { $saida = $saida[-1] }
         if ($saida -is [string] -and $saida.StartsWith('FALHA')) { $detalhe = $saida } else { $ok = $true }
     } catch { $detalhe = "FALHA: $($_.Exception.Message)" }
+    # Interrompida nao conta como feita: sem isso a etapa nunca seria refeita.
+    if (Test-Cancelado) { Write-Log "[cancelado] $Nome" DarkGray; Add-Resultado 'CANCELADO' $Nome; return }
+    # Interrompida nao conta como feita: sem isso a etapa nunca seria refeita.
+    if (Test-Cancelado) { Write-Log "[cancelado] $Nome" DarkGray; Add-Resultado 'CANCELADO' $Nome; return }
     if ($ok) {
         Add-Content -LiteralPath $script:Estado -Value $Nome -Encoding UTF8
         Add-Resultado 'OK' $Nome
@@ -101,6 +110,11 @@ function Invoke-ComTempo([string]$Exe, [string]$Argumentos, [int]$Minutos, [stri
     $pos = 0L
     while (-not $p.WaitForExit(700)) {
         $pos = Show-Saida $out $pos
+        if (Test-Cancelado) {
+            & taskkill.exe /PID $p.Id /T /F 2>&1 | Out-Null
+            Write-Log "proc.kill pid=$($p.Id) reason=cancelled"
+            return 1223
+        }
         if ($cron.Elapsed.TotalMinutes -ge $Minutos) {
             & taskkill.exe /PID $p.Id /T /F 2>&1 | Out-Null
             Write-Log "proc.kill pid=$($p.Id) reason=timeout"
@@ -122,7 +136,8 @@ function Show-Saida([string]$arq, [long]$pos) {
             $b = New-Object byte[] ($f.Length - $pos)
             $n = $f.Read($b, 0, $b.Length)
             $pos += $n
-            $t = [Text.Encoding]::UTF8.GetString($b, 0, $n)
+            # winget escreve em UTF-8; ping, sfc e DISM escrevem na pagina OEM do console.
+            $t = try { (New-Object Text.UTF8Encoding($false, $true)).GetString($b, 0, $n) } catch { [Text.Encoding]::GetEncoding([Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage).GetString($b, 0, $n) }
             foreach ($l in ($t -split "[\r\n]+")) {
                 $x = ($l -replace '[^\x20-\x7EÀ-ÿ]', '').Trim()
                 if ($x.Length -ge 4 -and $x -match '[A-Za-z]{3}' -and $x -notmatch '^[-\\|/\s]+$') { Write-Log ("  | " + $x.Substring(0, [Math]::Min(130, $x.Length))) }
@@ -143,7 +158,7 @@ function Wait-Internet {
     $avisou = $false
     while (-not (Test-Internet)) {
         if (-not $avisou) {
-            Write-Log 'Sem internet. Conecte no Wi-Fi na janela que abriu: o instalador continua sozinho quando a conexao voltar.' Yellow
+            Write-Log 'Sem internet. Conecte no Wi-Fi na janela que abriu: o instalador continua sozinho quando a conexão voltar.' Yellow
             Start-Process 'ms-settings:network-wifi' -ErrorAction SilentlyContinue
             $avisou = $true
         }
@@ -171,7 +186,7 @@ function Initialize-Winget {
         }
         Start-Sleep -Seconds 10
     }
-    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) { throw 'winget indisponivel' }
+    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) { throw 'winget indisponível' }
     & winget.exe source update --disable-interactivity 2>&1 | Out-Null
 }
 
@@ -197,8 +212,8 @@ function Install-Pacote($Pacote) {
         Start-Sleep -Seconds 15
     }
     if ($Pacote.comando -and -not (Get-Command $Pacote.comando -ErrorAction SilentlyContinue)) {
-        return "FALHA: comando '$($Pacote.comando)' nao encontrado (codigo $codigo)"
+        return "FALHA: comando '$($Pacote.comando)' não encontrado (código $codigo)"
     }
-    if (-not (Test-PacoteInstalado $Pacote)) { return "FALHA: nao aparece no winget (codigo $codigo)" }
+    if (-not (Test-PacoteInstalado $Pacote)) { return "FALHA: não aparece no winget (código $codigo)" }
     return 'OK'
 }

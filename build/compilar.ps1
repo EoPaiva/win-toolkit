@@ -8,9 +8,9 @@ $dist = Join-Path $raiz 'dist'
 Add-Type -AssemblyName System.Drawing
 $bmp = New-Object Drawing.Bitmap 256, 256
 $g = [Drawing.Graphics]::FromImage($bmp); $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'AntiAliasGridFit'
-$g.Clear([Drawing.Color]::FromArgb(2, 10, 6))
-$g.DrawRectangle((New-Object Drawing.Pen([Drawing.Color]::FromArgb(0, 255, 102), 10)), 5, 5, 246, 246)
-$g.DrawString('>_', (New-Object Drawing.Font('Consolas', 118, [Drawing.FontStyle]::Bold, [Drawing.GraphicsUnit]::Pixel)), (New-Object Drawing.SolidBrush([Drawing.Color]::FromArgb(0, 255, 102))), 26, 52)
+$g.Clear([Drawing.Color]::Black)
+$g.DrawRectangle((New-Object Drawing.Pen([Drawing.Color]::FromArgb(42, 42, 42), 8)), 4, 4, 248, 248)
+$g.DrawString('>_', (New-Object Drawing.Font('Consolas', 118, [Drawing.FontStyle]::Regular, [Drawing.GraphicsUnit]::Pixel)), [Drawing.Brushes]::White, 26, 52)
 $g.Dispose()
 $ms = New-Object IO.MemoryStream; $bmp.Save($ms, [Drawing.Imaging.ImageFormat]::Png); $png = $ms.ToArray()
 $ico = Join-Path $dist 'icone.ico'

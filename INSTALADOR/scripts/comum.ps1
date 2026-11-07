@@ -120,7 +120,9 @@ function Import-RedesWifi {
     $falhas = 0
     foreach ($a in $arqs) {
         & netsh.exe wlan add profile "filename=$($a.FullName)" user=all 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) { Remove-Item -LiteralPath $a.FullName -Force } else { $falhas++ }
+        if ($LASTEXITCODE -ne 0) { $falhas++; continue }
+        # Importou, mas a senha continua no arquivo se ele nao sair: isso tambem e falha.
+        try { Remove-Item -LiteralPath $a.FullName -Force -ErrorAction Stop } catch { $falhas++ }
     }
     if ($falhas) { "FALHA: $falhas de $($arqs.Count) redes nao importadas; os arquivos continuam em wifi\" } else { 'OK' }
 }

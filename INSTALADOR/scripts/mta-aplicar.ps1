@@ -27,15 +27,18 @@ $arqConfig = Join-Path $mta.PastaMta 'MTA\config\coreconfig.xml'
 function Ler-Backup {
     $saida = @{ config = @{}; gpu = @{}; mods = New-Object Collections.ArrayList; gtaset = $null }
     if (-not (Test-Path -LiteralPath $arqBackup)) { return $saida }
-    $lido = (Read-Utf8 $arqBackup) | ConvertFrom-Json
+    $lido = (Read-Utf8 $arqBackup) | ConvertFrom-Json -ErrorAction Stop
+    if (-not $lido) { throw 'mta-antes.json esta vazio' }
     if ($lido.config) { foreach ($p in $lido.config.PSObject.Properties) { $saida.config[$p.Name] = $p.Value } }
     if ($lido.gpu) { foreach ($p in $lido.gpu.PSObject.Properties) { $saida.gpu[$p.Name] = $p.Value } }
     foreach ($m in @($lido.mods)) { if ($m) { [void]$saida.mods.Add($m) } }
     $saida.gtaset = $lido.gtaset
     $saida
 }
-function Salvar-Backup { Write-Utf8 $arqBackup ($copia | ConvertTo-Json -Depth 5) }
-$copia = Ler-Backup
+function Salvar-Backup { Write-Atomico $arqBackup ($copia | ConvertTo-Json -Depth 5) }
+# Backup ilegivel nao e backup vazio: seguir apagaria os mods guardados e gravaria valores novos como originais.
+try { $copia = Ler-Backup }
+catch { Write-Log "policy.deny reason=backup-unreadable: $arqBackup nao pode ser lido e foi mantido, com os mods em $pastaBackup. Nada foi alterado." Red; exit 1 }
 
 # O primeiro valor salvo e o que vale: aplicar de novo nao apaga o estado original.
 function Aplicar-Config([hashtable]$Valores) {
@@ -51,8 +54,19 @@ function Mover-Item([string]$De, [string]$Para) {
         Move-Item -LiteralPath $De -Destination $Para -Force -ErrorAction Stop
     } else {
         Copy-Item -LiteralPath $De -Destination $Para -Recurse -Force -ErrorAction Stop
-        Remove-Item -LiteralPath $De -Recurse -Force -ErrorAction Stop
+        try { Remove-Item -LiteralPath $De -Recurse -Force -ErrorAction Stop }
+        catch { throw "copia completa em $Para, mas parte de $De nao saiu: $($_.Exception.Message)" }
     }
+}
+
+# Apaga so pastas vazias: o que nao esta no registro pode ser a unica copia de um mod.
+function Limpar-PastaBackup {
+    if (-not (Test-Path -LiteralPath $pastaBackup)) { return }
+    # Da pasta mais funda para a mais rasa: esvaziar uma pode esvaziar a de cima.
+    foreach ($d in @(Get-ChildItem -LiteralPath $pastaBackup -Directory -Force -Recurse | Sort-Object { $_.FullName.Length } -Descending)) {
+        if (-not @(Get-ChildItem -LiteralPath $d.FullName -Force).Count) { [IO.Directory]::Delete($d.FullName) }
+    }
+    if (-not @(Get-ChildItem -LiteralPath $pastaBackup -Force).Count) { [IO.Directory]::Delete($pastaBackup) }
 }
 
 function Ler-Estado { if (Test-Path -LiteralPath $arqEstado) { (Read-Utf8 $arqEstado) | ConvertFrom-Json } else { $null } }
@@ -74,15 +88,19 @@ if ($Reverter) {
         }
     }
     Passo 'Mods da pasta do GTA' {
-        $ocupados = 0
+        $ocupados = 0; $falhas = 0
         foreach ($m in @($copia.mods)) {
+            $temDestino = Test-Path -LiteralPath $m.de
+            # O registro vem antes de mover: sem copia no backup e com o original no lugar, ele nunca saiu.
+            # O PowerShell 5.1 pode deixar a pasta de destino vazia ao falhar: vazia tambem nao e copia.
+            $semCopia = -not (Test-Path -LiteralPath $m.para) -or ((Get-Item -LiteralPath $m.para -Force).PSIsContainer -and -not @(Get-ChildItem -LiteralPath $m.para -Force -Recurse -File).Count)
+            if ($temDestino -and $semCopia) { $copia.mods.Remove($m); Salvar-Backup; continue }
             # Nao sobrescreve: o que esta la agora pode ser uma copia nova do usuario.
-            if (Test-Path -LiteralPath $m.de) { $ocupados++; Write-Log "  | destino ocupado, mantido no backup: $($m.de)"; continue }
-            Mover-Item $m.para $m.de
-            $copia.mods.Remove($m)
-            Salvar-Backup
+            if ($temDestino) { $ocupados++; Write-Log "  | destino ocupado, mantido no backup: $($m.de) em $($m.para)"; continue }
+            try { Mover-Item $m.para $m.de; $copia.mods.Remove($m); Salvar-Backup }
+            catch { $falhas++; Write-Log "  | nao voltou: $($m.de): $($_.Exception.Message)" }
         }
-        if ($ocupados) { throw "$ocupados item(ns) ficaram em $pastaBackup porque o destino ja existe" }
+        if ($ocupados -or $falhas) { throw "$($ocupados + $falhas) item(ns) continuam em $pastaBackup" }
     }
     Passo 'gta_sa.set' {
         if ($copia.gtaset) {
@@ -94,17 +112,20 @@ if ($Reverter) {
     Write-Log 'Componentes instalados não são removidos: desinstalar um runtime pode quebrar outros programas.'
     if (-not $copia.config.Count -and -not $copia.gpu.Count -and -not $copia.mods.Count -and -not $copia.gtaset) {
         Remove-Item -LiteralPath $arqBackup -Force -ErrorAction SilentlyContinue
-        if (Test-Path -LiteralPath $pastaBackup) { Remove-Item -LiteralPath $pastaBackup -Recurse -Force -ErrorAction SilentlyContinue }
+        Limpar-PastaBackup
     }
     Write-Log 'mta.revert done' Green
     exit 0
 }
 
 $pedidos = @($Itens -split ',' | Where-Object { $_ })
+# Instalar pode levar muito tempo: fica por ultimo, para os ajustes nao dependerem de o MTA continuar fechado.
+$pedidos = @($pedidos | Where-Object { $_ -ne 'componentes' }) + @($pedidos | Where-Object { $_ -eq 'componentes' })
 Write-Log "@total $($pedidos.Count)"
 Write-Log "mta.apply start items=$($pedidos -join ',')" Cyan
 
 foreach ($item in $pedidos) {
+    if (Test-MtaAberto) { Write-Log "policy.deny reason=mta-open: o MTA foi aberto durante a rotina. O item $item e os seguintes nao foram aplicados." Red; exit 1 }
     switch ($item) {
         'semborda' { Passo 'Modo sem borda' { Aplicar-Config @{ display_fullscreen_style = '1' } } }
         'prioridade' { Passo 'Prioridade acima do normal' { Aplicar-Config @{ process_priority = '1' } } }
@@ -140,9 +161,10 @@ foreach ($item in $pedidos) {
                 $lote = Join-Path $pastaBackup (Get-Date -Format 'yyyyMMdd-HHmmss')
                 foreach ($origem in @(Get-ModsGta $mta.PastaGta)) {
                     $destino = Join-Path $lote (Split-Path -Leaf $origem)
-                    Mover-Item $origem $destino
+                    # Registra antes de mover: uma falha no meio nunca deixa copia sem registro.
                     [void]$copia.mods.Add([pscustomobject]@{ de = $origem; para = $destino })
                     Salvar-Backup
+                    Mover-Item $origem $destino
                     Write-Log "  | movido: $origem"
                 }
             }

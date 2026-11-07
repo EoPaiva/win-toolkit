@@ -114,17 +114,6 @@ function Get-ConfigMta([string]$Arquivo, [string[]]$Chaves) {
     $saida
 }
 
-# Move-Item -Force pode so registrar o erro e seguir: Replace lanca, e um erro nunca passa por sucesso.
-function Set-ArquivoFinal([string]$Temp, [string]$Arquivo) {
-    if (Test-Path -LiteralPath $Arquivo) { [IO.File]::Replace($Temp, $Arquivo, [NullString]::Value) } else { [IO.File]::Move($Temp, $Arquivo) }
-}
-
-function Write-Atomico([string]$Caminho, [string]$Texto) {
-    $temp = "$Caminho.tmp"
-    try { Write-Utf8 $temp $Texto; Set-ArquivoFinal $temp $Caminho }
-    finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue } }
-}
-
 # Altera so as chaves pedidas e devolve os valores anteriores. Valor $null remove a chave.
 # Grava em temporario e troca no fim: um erro nunca deixa o arquivo pela metade.
 function Set-ConfigMta([string]$Arquivo, [hashtable]$Valores) {

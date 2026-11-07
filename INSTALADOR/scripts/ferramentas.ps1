@@ -25,7 +25,7 @@ $Correcoes = @{
     'smb1'         = @('Disable-WindowsOptionalFeature SMB1Protocol', { Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart | Out-Null })
     'rdp-nla'      = @('reg.set HKLM\..\RDP-Tcp\UserAuthentication=1', { Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name UserAuthentication -Value 1 -Type DWord })
     'guest'        = @('Disable-LocalUser SID *-501', { Get-LocalUser | Where-Object { $_.SID -like '*-501' } | Disable-LocalUser })
-    'autorun'      = @('reg.set HKLM\..\Explorer\NoDriveTypeAutoRun=0xFF', { New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -Value 255 -Type DWord })
+    'autorun'      = @('reg.set HKLM\..\Explorer\NoDriveTypeAutoRun=0xFF', { Confirm-ChaveRegistro 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name NoDriveTypeAutoRun -Value 255 -Type DWord })
     'ps2'          = @('Disable-WindowsOptionalFeature MicrosoftWindowsPowerShellV2', { Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root -NoRestart | Out-Null })
 }
 
@@ -40,17 +40,7 @@ switch ($Acao) {
         Initialize-Winget
         Passo 'winget upgrade --all --include-unknown' { Exec 'winget.exe' 'upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements --disable-interactivity' 120 }
     }
-    'limpar' {
-        Write-Log '@total 3'
-        foreach ($p in $env:TEMP, "$env:windir\Temp") {
-            Passo "purge $p" {
-                $antes = Tamanho $p
-                Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-                Write-Log ("  | freed={0:N0} MB" -f (($antes - (Tamanho $p)) / 1MB))
-            }
-        }
-        Passo 'DISM /Online /Cleanup-Image /StartComponentCleanup' { Exec 'dism.exe' '/Online /Cleanup-Image /StartComponentCleanup' 60 }
-    }
+    'limpar' { & "$PSScriptRoot\limpar-disco.ps1" }
     'reparar' {
         Write-Log '@total 2'
         Passo 'DISM /Online /Cleanup-Image /RestoreHealth' { Exec 'dism.exe' '/Online /Cleanup-Image /RestoreHealth' 60 }

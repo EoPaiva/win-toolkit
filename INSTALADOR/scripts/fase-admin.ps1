@@ -20,9 +20,7 @@ Invoke-Etapa 'Caminhos longos no Windows' {
 Wait-Internet
 Initialize-Winget
 
-foreach ($p in $programas.maquina) {
-    Invoke-Etapa "Programa $($p.id)" { Install-Pacote $p }
-}
+Invoke-Programas @(foreach ($p in $programas.maquina) { New-ItemPrograma "Programa $($p.id)" $p })
 
 Invoke-Etapa 'NET Framework 3.5' {
     $c = Invoke-ComTempo 'dism.exe' '/Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart /Quiet' 30 'netfx3'

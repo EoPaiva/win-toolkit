@@ -42,6 +42,7 @@ O **upaiva.dev** troca isso por uma tela. Você escolhe o que entra, acompanha o
 - **Perfis prontos:** Completo, Básico, Gamer, Dev e IA, além de salvar e carregar a sua seleção
 - **Fila visível** com o estado e o tempo de cada item
 - **Progresso ponderado:** um pacote pesado conta mais que um utilitário pequeno
+- **Instalação simultânea:** até 4 programas juntos, conforme os núcleos do PC e enquanto CPU e RAM têm folga. Instaladores MSI esperam a vez, porque o Windows só roda um por vez
 - **Cancelar a qualquer momento**, encerrando também os processos filhos
 
 ### Drivers
@@ -59,12 +60,14 @@ Varredura **somente leitura** de segurança e saúde: Defender, Firewall, UAC, S
 | **Leve** | Qualquer PC: tira anúncios, sugestões e apps instalados sozinhos | Nenhuma função perdida |
 | **Média** | Remove 21 apps, Recall e DiagTrack, e liga HAGS e Alto Desempenho | Mais consumo de bateria |
 | **Alta** | Desliga SysMain, Windows Search, Xbox Live e Spooler | Sem impressora e sem busca indexada |
-| **Altíssima** | Mais 13 serviços e apps em segundo plano bloqueados | Sem notificações e localização. Para PC na tomada |
+| **Altíssima** | Quase 90 serviços a mais desligados e apps em segundo plano bloqueados. Fica só o que rede, áudio, login, loja, segurança e jogos usam | Sem localização, sensores, smart card e Miracast. Para PC na tomada |
 
-Os níveis são cumulativos, somam mais de 90 ações no topo e podem ser **simulados antes de aplicar**.
+Os níveis são cumulativos, somam mais de 170 ações no topo e podem ser **simulados antes de aplicar**. A Altíssima usa uma lista fechada de serviços do Windows, com detecção de Bluetooth e rede móvel, e uma lista de intocáveis que aborta o plano antes de qualquer alteração se houver conflito. Serviços de terceiros, como GPU, Vanguard, Steam e VPN, nunca são tocados.
 
 ### Ferramentas
-Atualizar todos os programas, limpar disco, reparar o sistema com DISM e SFC, resetar a rede, criar ponto de restauração e **reinstalar pela Microsoft Store os apps removidos**.
+Atualizar todos os programas; **limpar disco** (temporários, Lixeira, cache do Windows Update, componentes antigos via DISM, logs, miniaturas e cache dos navegadores, com confirmação e o espaço liberado à vista); reparar o sistema com DISM e SFC; resetar a rede; criar ponto de restauração; e **reinstalar pela Microsoft Store os apps removidos**.
+
+> A limpeza age só em arquivos descartáveis e no seu cache. Não mexe no registro de execução do sistema (Amcache, Shimcache, BAM, USN Journal, Event Log) — isso não é limpeza de disco e serve só para esconder o que rodou na máquina.
 
 ### Terminal e Ctrl K
 
@@ -143,12 +146,12 @@ INSTALADOR/     O que o .exe usa em execução
 
 | | |
 |---|---|
-| **Testado de ponta a ponta** | Compilação, análise real, busca real de drivers, simulação da Altíssima, restauração das configs em pasta temporária, travas contra rodar no PC de origem e todo o fluxo da interface, incluindo o cancelamento, com instalador de teste |
-| **Falta testar em máquina real** | Instalação real dos programas, instalação de drivers, aplicar e reverter níveis, correções da análise, ferramentas, reinstalação de apps e cancelamento em processo elevado |
+| **Testado de ponta a ponta** | Compilação, análise real, busca real de drivers, simulação da Altíssima, restauração das configs em pasta temporária, travas contra rodar no PC de origem e todo o fluxo da interface, incluindo o cancelamento e o escalonador da instalação simultânea, com instalador de teste |
+| **Falta testar em máquina real** | Instalação real dos programas, instalação de drivers, aplicar e reverter níveis, instalação simultânea com instaladores reais, correções da análise, ferramentas, reinstalação de apps e cancelamento em processo elevado |
 
-O ganho de desempenho dos níveis não foi medido.
+O ganho de desempenho dos níveis não foi medido. Na Altíssima, a maior parte dos serviços da lista já fica parada até ser chamada, então espere pouco ganho e confira na simulação o que muda no seu PC.
 
-> **Repositório privado de propósito.** `INSTALADOR/config` traz skills e configurações pessoais. Antes de torná-lo público, remova essa pasta **e o histórico dela**.
+> `INSTALADOR/config` traz o snapshot de skills e configurações do autor, sem logins nem tokens. Para usar o app com as suas, troque essa pasta.
 
 ---
 

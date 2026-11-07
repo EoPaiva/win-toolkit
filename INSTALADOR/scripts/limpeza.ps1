@@ -72,7 +72,7 @@ foreach ($s in $antes.Keys) {
 }
 
 foreach ($r in $Registro) {
-    New-Item -Path $r[0] -Force -ErrorAction SilentlyContinue | Out-Null
+    Confirm-ChaveRegistro $r[0]
     Set-ItemProperty -Path $r[0] -Name $r[1] -Value $r[2] -Type DWord -ErrorAction SilentlyContinue
 }
 'OK'

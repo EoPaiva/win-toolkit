@@ -347,9 +347,11 @@ class Aplicativo {
         var b = C<Button>("Principal");
         b.Visibility = Visibility.Visible;
         b.Tag = null;
-        if (emAndamento) { b.Content = "Em execução"; b.IsEnabled = false; return; }
+        if (emAndamento) { b.Content = "Em execução"; b.IsEnabled = false; C<CheckBox>("OpcaoParalelo").Visibility = Visibility.Collapsed; return; }
+        C<CheckBox>("OpcaoParalelo").Visibility = Visibility.Collapsed;
         if (abaAtual == "Terminal") { if (terminado) { b.Content = "Voltar"; b.Tag = "sem"; b.IsEnabled = true; } else b.Visibility = Visibility.Collapsed; return; }
         bool instDrivers = podeAlterar && driversMarcaveis.Count > 0, corrigir = podeAlterar && achados.Count > 0;
+        C<CheckBox>("OpcaoParalelo").Visibility = abaAtual == "Instalar" && podeAlterar ? Visibility.Visible : Visibility.Collapsed;
         C<Button>("BuscarDeNovo").Visibility = instDrivers ? Visibility.Visible : Visibility.Collapsed;
         C<Button>("AnalisarDeNovo").Visibility = corrigir ? Visibility.Visible : Visibility.Collapsed;
         if (abaAtual == "Instalar") { b.IsEnabled = podeAlterar; Recontar(); }
@@ -603,6 +605,8 @@ class Aplicativo {
         var todos = grupos.SelectMany(g => g.Itens).ToList();
         File.WriteAllLines(Path.Combine(dados, "pular.txt"), todos.Where(i => !i.Catalogo && i.Caixa.IsChecked != true).SelectMany(i => i.Padroes), new UTF8Encoding(false));
         File.WriteAllLines(Path.Combine(dados, "catalogo.txt"), todos.Where(i => i.Catalogo && i.Caixa.IsChecked == true).Select(i => i.Id), new UTF8Encoding(false));
+        string arqParalelo = Path.Combine(dados, "paralelo.txt");
+        if (C<CheckBox>("OpcaoParalelo").IsChecked == true) File.WriteAllText(arqParalelo, "1"); else if (File.Exists(arqParalelo)) File.Delete(arqParalelo);
         total = todos.Where(i => i.Caixa.IsChecked == true).Sum(i => i.Peso);
         abaDepois = "Instalar"; tipoExec = "instalar";
         Executar("instalar.ps1", "", false, "Instalando.");
@@ -748,7 +752,7 @@ class Aplicativo {
         Nivel(p, "leve", "01", "Leve", "Sem perda de função", "Tira anúncios, sugestões e apps instalados sozinhos. Telemetria no mínimo, sem P2P no Windows Update, Modo de Jogo e Storage Sense ligados.", false);
         Nivel(p, "media", "02", "Média", "Risco baixo", "Remove 21 apps, como Copilot, Widgets e Teams. Desliga Recall e DiagTrack. Liga HAGS e o plano Alto Desempenho, que gasta mais bateria.", true);
         Nivel(p, "alta", "03", "Alta", "Perde impressora e busca indexada", "Desliga SysMain, Windows Search, Xbox Live, Spooler e relatório de erros. Remove Game Bar. Sem hibernação e transparência, com Ultimate Performance.", false);
-        Nivel(p, "altissima", "04", "Altíssima", "Perde notificações e localização", "Mais 13 serviços desligados, apps em segundo plano bloqueados, sem Power Throttling, Inicialização Rápida ou compressão de memória. Para PC na tomada.", false);
+        Nivel(p, "altissima", "04", "Altíssima", "Perde localização, sensores, smart card e Miracast", "Fica só o que rede, áudio, login, loja, segurança e jogos usam: quase 90 serviços a mais desligados, sem apps em segundo plano, Power Throttling ou Inicialização Rápida. Para PC na tomada.", false);
     }
 
     void Nivel(System.Windows.Controls.Primitives.UniformGrid p, string id, string num, string nome, string risco, string texto, bool marcado) {
@@ -784,7 +788,7 @@ class Aplicativo {
     void MontarFerramentas() {
         var p = C<StackPanel>("Ferramentas");
         Ferramenta(p, "atualizar", "Atualizar todos os programas", "winget upgrade --all --include-unknown");
-        Ferramenta(p, "limpar", "Limpar disco", "purge %TEMP% e %WINDIR%\\Temp, DISM /StartComponentCleanup");
+        Ferramenta(p, "limpar", "Limpar disco", "Temporários, Lixeira, cache do Windows Update, componentes antigos (DISM), logs, miniaturas e cache dos navegadores. Mostra o espaço liberado.");
         Ferramenta(p, "reparar", "Reparar sistema", "DISM /RestoreHealth, sfc /scannow. Pode levar 30 minutos.");
         Ferramenta(p, "rede", "Resetar rede", "ipconfig /flushdns, netsh winsock reset, netsh int ip reset. Pede reinício.");
         Ferramenta(p, "restauracao", "Criar ponto de restauração", "Enable-ComputerRestore, Checkpoint-Computer");
@@ -803,8 +807,12 @@ class Aplicativo {
         var i = acao; var ti = titulo;
         b.Click += delegate {
             if (emAndamento || !podeAlterar) return;
-            abaDepois = "Ferramentas"; tipoExec = "ferramenta"; total = 0;
-            Executar("ferramentas.ps1", "-Acao " + i, true, ti + ".");
+            Action rodar = delegate {
+                abaDepois = "Ferramentas"; tipoExec = "ferramenta"; total = 0;
+                Executar("ferramentas.ps1", "-Acao " + i, true, ti + ".");
+            };
+            if (i == "limpar") Confirmar("Limpar disco?", "Apaga temporários, caches do sistema e dos navegadores, logs antigos e miniaturas, e esvazia a Lixeira. Não toca em arquivos seus, senhas salvas nem no registro de execução do sistema.", "Limpar", rodar);
+            else rodar();
         };
         botoesFerramenta.Add(b);
         p.Children.Add(Fila(g));
@@ -982,7 +990,8 @@ class Aplicativo {
         if (!cancelando) {
             var pend = linhas.Values.Count(x => x.Etiqueta.Text == "[..]");
             // Sem total conhecido nao ha porcentagem honesta para mostrar.
-            TituloExec(Curto(situacao), total > 0 ? ((int)(pct * 100)) + "%" + (pend > 0 ? ", faltam " + pend : "") : "Em andamento.");
+            int ativos = linhas.Values.Count(x => x.Etiqueta.Text == "[>>]");
+            TituloExec(ativos > 1 ? ativos + " instalando juntos." : Curto(situacao), total > 0 ? ((int)(pct * 100)) + "%" + (pend > 0 ? ", faltam " + pend : "") : "Em andamento.");
         }
     }
 

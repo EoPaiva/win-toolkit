@@ -16,6 +16,7 @@ $MM = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfi
 
 function PlanoReg($n, $c, $nome, $v) { [pscustomobject]@{ n = $n; t = 'reg'; c = $c; a = $nome; v = $v } }
 function PlanoSvc($n, $s) { [pscustomobject]@{ n = $n; t = 'svc'; a = $s } }
+function PlanoTmpl($n, $s) { [pscustomobject]@{ n = $n; t = 'tmpl'; a = $s } }
 function PlanoApp($n, $s) { [pscustomobject]@{ n = $n; t = 'appx'; a = $s } }
 function PlanoCmd($n, $d, $x) { [pscustomobject]@{ n = $n; t = 'cmd'; a = $d; x = $x } }
 
@@ -54,7 +55,26 @@ $Plano += PlanoCmd 3 'powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749
     if ($s -match '([0-9a-fA-F-]{36})') { & powercfg.exe /setactive $Matches[1] }
 }
 
+# Altissima: desliga o que um PC domestico nao usa e deixa rede, audio, login, loja, seguranca, Hyper-V e o que jogos usam.
+# Lista fechada de servicos do Windows: servico de terceiros (GPU, Vanguard, Steam, VPN) nunca entra aqui.
 foreach ($s in 'PhoneSvc', 'wisvc', 'stisvc', 'SSDPSRV', 'upnphost', 'lmhosts', 'TrkWks', 'PcaSvc', 'WpcMonSvc', 'RemoteAccess', 'lfsvc', 'WalletService', 'SEMgrSvc') { $Plano += PlanoSvc 4 $s }
+# Diagnostico e coleta
+foreach ($s in 'DPS', 'WdiServiceHost', 'WdiSystemHost', 'diagsvc', 'TroubleshootingSvc', 'wercplsupport', 'PerfHost', 'pla', 'InventorySvc', 'whesvc', 'WSAIFabricSvc', 'wmiApSrv', 'GraphicsPerfSvc') { $Plano += PlanoSvc 4 $s }
+# Empresa e gerenciamento remoto
+foreach ($s in 'SCardSvr', 'ScDeviceEnum', 'SCPolicySvc', 'CertPropSvc', 'DmEnrollmentSvc', 'dcsvc', 'EntAppSvc', 'WManSvc', 'NcdAutoSetup', 'NcaSvc', 'RpcLocator', 'NetTcpPortSharing', 'SNMPTrap', 'RasAuto', 'wlpasvc') { $Plano += PlanoSvc 4 $s }
+# Rede local, descoberta e compartilhamento sem fio
+foreach ($s in 'ALG', 'dot3svc', 'fdPHost', 'FDResPub', 'lltdsvc', 'WFDSConMgrSvc', 'icssvc', 'IpxlatCfgSvc', 'wcncsvc', 'WebClient', 'QWAVE', 'CscService', 'CDPSvc') { $Plano += PlanoSvc 4 $s }
+# Sensores, backup, impressao moderna e recursos de nicho
+foreach ($s in 'SensorDataService', 'SensorService', 'SensrSvc', 'ShellHWDetection', 'WiaRpc', 'NaturalAuthentication', 'SmsRouter', 'autotimesvc', 'tzautoupdate', 'AxInstSV', 'WEPHOSTSVC', 'PushToInstall', 'LxpSvc', 'embeddedmode', 'shpamsvc', 'TieringEngineService', 'refsdedupsvc', 'wbengine', 'SDRSVC', 'fhsvc', 'McpManagementService', 'PrintDeviceConfigurationService', 'PrintScanBrokerService') { $Plano += PlanoSvc 4 $s }
+# Servicos por usuario: o Windows copia estes modelos a cada login, entao o desligamento e no modelo.
+foreach ($s in 'AarSvc', 'BcastDVRUserService', 'CDPUserSvc', 'CloudBackupRestoreSvc', 'MessagingService', 'OneSyncSvc', 'PenService', 'PimIndexMaintenanceSvc', 'PrintWorkflowUserSvc', 'UnistoreSvc', 'UserDataSvc') { $Plano += PlanoTmpl 4 $s }
+# Dependem do hardware e da rede de cada PC.
+if (-not (Get-PnpDevice -Class Bluetooth -PresentOnly -Status OK -ErrorAction SilentlyContinue)) {
+    foreach ($s in 'bthserv', 'BTAGService', 'BthAvctpSvc') { $Plano += PlanoSvc 4 $s }
+    $Plano += PlanoTmpl 4 'BluetoothUserService'
+}
+if (-not (Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { $_.PhysicalMediaType -match 'Wireless WAN' })) { $Plano += PlanoSvc 4 'WwanSvc' }
+if (-not (Get-CimInstance Win32_ComputerSystem).PartOfDomain) { $Plano += PlanoSvc 4 'Netlogon' }
 $Plano += PlanoReg 4 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications' 'GlobalUserDisabled' 1
 $Plano += PlanoReg 4 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling' 'PowerThrottlingOff' 1
 $Plano += PlanoReg 4 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' 'HiberbootEnabled' 0
@@ -65,6 +85,20 @@ $Plano += PlanoCmd 4 'DISM /Online /Set-ReservedStorageState /State:Disabled' { 
 if (([Math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)) -ge 16) {
     $Plano += PlanoCmd 4 'Disable-MMAgent -MemoryCompression (RAM >= 16 GB)' { Disable-MMAgent -MemoryCompression -ErrorAction SilentlyContinue }
 }
+
+# Trava contra erro nesta lista: um PC sem estes servicos perde protecao, deixa de iniciar ou fica sem rede, audio ou loja.
+# Inclui os que a Microsoft pede para nao desligar. Vem antes de qualquer alteracao.
+$Intocaveis = @(
+    'WinDefend', 'WdNisSvc', 'MDCoreSvc', 'webthreatdefsvc', 'webthreatdefusersvc', 'SecurityHealthService', 'wscsvc', 'mpssvc', 'BFE', 'IKEEXT', 'BDESVC', 'EFS', 'VaultSvc', 'KeyIso', 'NgcSvc', 'NgcCtnrSvc', 'WbioSrvc', 'SamSs', 'seclogon'
+    'wuauserv', 'UsoSvc', 'WaaSMedicSvc', 'BITS', 'DoSvc', 'TrustedInstaller', 'CryptSvc', 'msiserver', 'DeviceInstall', 'DsmSvc', 'PlugPlay', 'VSS', 'swprv', 'W32Time'
+    'DcomLaunch', 'RpcSs', 'RpcEptMapper', 'EventLog', 'EventSystem', 'SENS', 'ProfSvc', 'Power', 'gpsvc', 'UserManager', 'Themes', 'SystemEventsBroker', 'BrokerInfrastructure', 'CoreMessagingRegistrar', 'TimeBrokerSvc', 'TextInputManagementService', 'FontCache', 'Winmgmt', 'Schedule', 'StorSvc', 'DispBrokerDesktopSvc', 'hidserv', 'defragsvc', 'vds'
+    'AppXSvc', 'ClipSVC', 'StateRepository', 'AppReadiness', 'InstallService', 'TokenBroker', 'wlidsvc', 'LicenseManager', 'sppsvc'
+    'Dhcp', 'Dnscache', 'nsi', 'NlaSvc', 'netprofm', 'Netman', 'Wcmsvc', 'WlanSvc', 'LanmanWorkstation', 'LanmanServer', 'RasMan', 'iphlpsvc', 'SharedAccess', 'WinHttpAutoProxySvc', 'SstpSvc', 'TapiSrv', 'smphost', 'RmSvc', 'NcbService', 'DusmSvc', 'MSiSCSI', 'WinRM', 'Wecsvc', 'SessionEnv', 'TermService', 'UmRdpService'
+    'hns', 'HvHost', 'vmcompute', 'vmickvpexchange', 'vmicguestinterface', 'vmicshutdown', 'vmicheartbeat', 'vmicvmsession', 'vmicrdv', 'vmictimesync', 'vmicvss', 'P9RdrService'
+    'Audiosrv', 'AudioEndpointBuilder', 'camsvc', 'FrameServer', 'FrameServerMonitor', 'CaptureService', 'NPSMSvc', 'cbdhsvc', 'WpnService', 'WpnUserService', 'GameInputSvc', 'XboxGipSvc', 'vgc', 'DeviceAssociationService', 'DevicesFlowUserSvc'
+)
+$conflito = @($Plano | Where-Object { $_.t -in 'svc', 'tmpl' -and $Intocaveis -contains $_.a } | ForEach-Object { $_.a })
+if ($conflito.Count) { Write-Log "policy.deny servicos intocaveis no plano: $($conflito -join ', '). Nada foi alterado." Red; exit 1 }
 
 $nivelNum = @{ leve = 1; media = 2; alta = 3; altissima = 4 }[$Nivel]
 $acoes = @($Plano | Where-Object { $_.n -le $nivelNum })
@@ -119,7 +153,7 @@ if ($Reverter) {
 
 $modo = if ($Simular) { 'dry-run' } else { 'apply' }
 Write-Log "@total $($acoes.Count + 1)"
-Write-Log "optimizer.start profile=$Nivel mode=$modo actions=$($acoes.Count) reg=$(@($acoes | Where-Object t -eq 'reg').Count) svc=$(@($acoes | Where-Object t -eq 'svc').Count) appx=$(@($acoes | Where-Object t -eq 'appx').Count) cmd=$(@($acoes | Where-Object t -eq 'cmd').Count)" Cyan
+Write-Log "optimizer.start profile=$Nivel mode=$modo actions=$($acoes.Count) reg=$(@($acoes | Where-Object t -eq 'reg').Count) svc=$(@($acoes | Where-Object t -in 'svc', 'tmpl').Count) appx=$(@($acoes | Where-Object t -eq 'appx').Count) cmd=$(@($acoes | Where-Object t -eq 'cmd').Count)" Cyan
 
 Write-Log '[....] Checkpoint-Computer -RestorePointType MODIFY_SETTINGS'
 if (-not $Simular) {
@@ -141,7 +175,7 @@ foreach ($x in $acoes) {
             if (-not $Simular) {
                 $k = "$($x.c)|$($x.a)"
                 if (-not $copiaAtual.reg.ContainsKey($k)) { $copiaAtual.reg[$k] = $prev }
-                New-Item -Path $x.c -Force -ErrorAction SilentlyContinue | Out-Null
+                Confirm-ChaveRegistro $x.c
                 $valor = if ($x.v -is [long] -or $x.v -gt [int]::MaxValue) { [int]-1 } else { [int]$x.v }
                 Set-ItemProperty -Path $x.c -Name $x.a -Value $valor -Type DWord -ErrorAction SilentlyContinue
             }
@@ -156,6 +190,23 @@ foreach ($x in $acoes) {
                 if (-not $copiaAtual.svc.ContainsKey($x.a)) { $copiaAtual.svc[$x.a] = "$($svc.StartType)" }
                 Stop-Service -Name $x.a -Force -ErrorAction SilentlyContinue
                 Set-Service -Name $x.a -StartupType Disabled -ErrorAction SilentlyContinue
+                # O Windows recusa alguns servicos sem dar erro: so conta como feito depois de conferir.
+                if ((Get-Service -Name $x.a).StartType -ne 'Disabled') { Write-Log "[FALHOU] $nome - o Windows recusou" Red; continue }
+            }
+            Write-Log "[ ok ] $nome"
+        }
+        'tmpl' {
+            $chave = "HKLM:\SYSTEM\CurrentControlSet\Services\$($x.a)"
+            if (-not (Test-Path -LiteralPath $chave)) { Write-Log "  | svc.template $($x.a) not present on this build"; continue }
+            $prev = (Get-ItemProperty -Path $chave -Name Start -ErrorAction SilentlyContinue).Start
+            $nome = "svc.template $($x.a) start=4 prev=$prev"
+            Write-Log "[....] $nome"
+            if (-not $Simular) {
+                $k = "$chave|Start"
+                if (-not $copiaAtual.reg.ContainsKey($k)) { $copiaAtual.reg[$k] = $prev }
+                Get-Service -Name "$($x.a)_*" -ErrorAction SilentlyContinue | Stop-Service -Force -ErrorAction SilentlyContinue
+                Set-ItemProperty -Path $chave -Name Start -Value 4 -Type DWord -ErrorAction SilentlyContinue
+                if ((Get-ItemProperty -Path $chave -Name Start -ErrorAction SilentlyContinue).Start -ne 4) { Write-Log "[FALHOU] $nome - o Windows recusou" Red; continue }
             }
             Write-Log "[ ok ] $nome"
         }

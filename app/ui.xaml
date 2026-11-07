@@ -381,6 +381,7 @@
             <TextBlock x:Name="Telemetria" FontFamily="Cascadia Mono, Consolas" FontSize="11.5" Foreground="{StaticResource Mudo}" VerticalAlignment="Center"/>
             <TextBlock x:Name="Aviso" Grid.Column="1" Foreground="#FF6B6B" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Margin="26,0,20,0" Visibility="Collapsed"/>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <CheckBox x:Name="OpcaoParalelo" Content="Em paralelo" IsChecked="True" VerticalAlignment="Center" Margin="0,0,18,0" Visibility="Collapsed" ToolTip="Instala vários programas juntos enquanto CPU e RAM permitem. Instaladores MSI esperam a vez."/>
               <Button x:Name="Relatorio" Style="{StaticResource BotaoPilula}" Content="Ver relatório" Margin="0,0,8,0" Visibility="Collapsed"/>
               <Button x:Name="Cancelar" Style="{StaticResource BotaoPilula}" Content="Cancelar" Margin="0,0,8,0" Visibility="Collapsed"/>
               <Button x:Name="Principal" Style="{StaticResource BotaoPrincipal}" Content="Instalar"/>

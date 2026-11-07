@@ -6,6 +6,7 @@ $script:Dados = $env:SETUP_DADOS
 $script:Logs = Join-Path $script:Dados 'logs'
 $script:Estado = Join-Path $script:Dados 'estado.txt'
 $script:Relatorio = Join-Path $script:Dados 'relatorio.txt'
+$script:PrefixoSaida = ''
 New-Item -ItemType Directory -Force $script:Logs | Out-Null
 
 # UTF-8 sem BOM: o Claude Code e o Codex leem esses arquivos e um BOM quebra o JSON.
@@ -21,14 +22,25 @@ function Write-Log([string]$Mensagem, [ConsoleColor]$Cor = 'Gray') {
     Write-Host $Mensagem -ForegroundColor $Cor
     # O app le este arquivo enquanto ele cresce, e a parte elevada escreve nele em outro processo.
     $bytes = [Text.Encoding]::UTF8.GetBytes(("{0:HH:mm:ss} {1}`r`n" -f (Get-Date), $Mensagem))
-    # Sem compartilhar a escrita: dois processos abrindo juntos sobrescreveriam linhas um do outro.
+    Add-Bytes (Join-Path $script:Logs 'instalador.log') $bytes
+}
+
+# Sem compartilhar a escrita: dois processos abrindo juntos sobrescreveriam linhas um do outro.
+function Add-Bytes([string]$Caminho, [byte[]]$Bytes) {
     foreach ($tentativa in 1..200) {
         try {
-            $f = New-Object IO.FileStream((Join-Path $script:Logs 'instalador.log'), 'Append', 'Write', 'Read,Delete')
-            try { $f.Write($bytes, 0, $bytes.Length) } finally { $f.Close() }
+            $f = New-Object IO.FileStream($Caminho, 'Append', 'Write', 'Read,Delete')
+            try { $f.Write($Bytes, 0, $Bytes.Length) } finally { $f.Close() }
             break
         } catch { Start-Sleep -Milliseconds 15 }
     }
+}
+
+function Add-Linha([string]$Caminho, [string]$Texto) { Add-Bytes $Caminho ([Text.Encoding]::UTF8.GetBytes("$Texto`r`n")) }
+
+# New-Item -Force numa chave de registro que ja existe apaga os valores e as subchaves dela. So cria o que falta.
+function Confirm-ChaveRegistro([string]$Caminho) {
+    if (-not (Test-Path -LiteralPath $Caminho)) { New-Item -Path $Caminho -Force -ErrorAction SilentlyContinue | Out-Null }
 }
 
 function Update-Path {
@@ -48,11 +60,11 @@ function Add-UserPath([string]$Pasta) {
 }
 
 function Test-Feito([string]$Nome) {
-    (Test-Path -LiteralPath $script:Estado) -and ((Get-Content -LiteralPath $script:Estado) -contains $Nome)
+    (Test-Path -LiteralPath $script:Estado) -and ((Get-Content -LiteralPath $script:Estado -Encoding UTF8) -contains $Nome)
 }
 
 function Add-Resultado([string]$Situacao, [string]$Nome, [string]$Detalhe = '') {
-    Add-Content -LiteralPath $script:Relatorio -Value ("{0,-6} {1}  {2}" -f $Situacao, $Nome, $Detalhe) -Encoding UTF8
+    Add-Linha $script:Relatorio ("{0,-6} {1}  {2}" -f $Situacao, $Nome, $Detalhe)
 }
 
 # O app cria cancelar.flag no botao Cancelar. O arquivo vale entre o processo comum e o elevado.
@@ -83,7 +95,7 @@ function Invoke-Etapa([string]$Nome, [scriptblock]$Acao) {
     # Interrompida nao conta como feita: sem isso a etapa nunca seria refeita.
     if (Test-Cancelado) { Write-Log "[cancelado] $Nome" DarkGray; Add-Resultado 'CANCELADO' $Nome; return }
     if ($ok) {
-        Add-Content -LiteralPath $script:Estado -Value $Nome -Encoding UTF8
+        Add-Linha $script:Estado $Nome
         Add-Resultado 'OK' $Nome
         Write-Log "[ ok ] $Nome" Green
     } else {
@@ -140,7 +152,7 @@ function Show-Saida([string]$arq, [long]$pos) {
             $t = try { (New-Object Text.UTF8Encoding($false, $true)).GetString($b, 0, $n) } catch { [Text.Encoding]::GetEncoding([Globalization.CultureInfo]::CurrentCulture.TextInfo.OEMCodePage).GetString($b, 0, $n) }
             foreach ($l in ($t -split "[\r\n]+")) {
                 $x = ($l -replace '[^\x20-\x7EÀ-ÿ]', '').Trim()
-                if ($x.Length -ge 4 -and $x -match '[A-Za-z]{3}' -and $x -notmatch '^[-\\|/\s]+$') { Write-Log ("  | " + $x.Substring(0, [Math]::Min(130, $x.Length))) }
+                if ($x.Length -ge 4 -and $x -match '[A-Za-z]{3}' -and $x -notmatch '^[-\\|/\s]+$') { Write-Log ("  | " + $script:PrefixoSaida + $x.Substring(0, [Math]::Min(130, $x.Length))) }
             }
         } finally { $f.Close() }
     } catch { }
@@ -207,6 +219,15 @@ function Install-Pacote($Pacote) {
     $codigo = 0
     foreach ($tentativa in 1..2) {
         $codigo = Invoke-ComTempo 'winget.exe' $a $minutos "winget-$($Pacote.id)"
+        # Windows Installer roda um por vez. Esperar a vez nao e falha nem gasta tentativa. -1978334974 e 0x8A150102 no winget.
+        $vez = 0
+        while (($codigo -in 1618, -1978334974) -and $vez -lt 60 -and -not (Test-Cancelado)) {
+            Write-Log "  | $($script:PrefixoSaida)installer.busy code=$codigo wait=20s"
+            Start-Sleep -Seconds 20
+            $vez++
+            $codigo = Invoke-ComTempo 'winget.exe' $a $minutos "winget-$($Pacote.id)"
+        }
+        if (Test-Cancelado) { return 'FALHA: cancelado' }
         Update-Path
         if (Test-PacoteInstalado $Pacote) { break }
         Start-Sleep -Seconds 15
@@ -216,4 +237,73 @@ function Install-Pacote($Pacote) {
     }
     if (-not (Test-PacoteInstalado $Pacote)) { return "FALHA: não aparece no winget (código $codigo)" }
     return 'OK'
+}
+
+# Quantos instaladores cabem juntos neste PC. O teto de 4 existe porque disco e rede saturam antes da CPU.
+function Get-VagasMaximas { [Math]::Max(1, [Math]::Min(4, [int][Math]::Floor([Environment]::ProcessorCount / 4))) }
+
+function Get-Carga {
+    $so = Get-CimInstance Win32_OperatingSystem
+    [pscustomobject]@{
+        Cpu = [int](Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average
+        Ram = [int](100 - 100 * $so.FreePhysicalMemory / $so.TotalVisibleMemorySize)
+        LivreGB = [math]::Round($so.FreePhysicalMemory / 1MB, 1)
+    }
+}
+
+# Dependencias usam Windows Installer e rodariam em fila de qualquer jeito. Os pesados ocupam disco e rede sozinhos.
+function New-ItemPrograma([string]$Nome, $Pacote) {
+    [pscustomobject]@{ Nome = $Nome; Pacote = $Pacote; Sozinho = ($Pacote.grupo -eq 'Dependências (AIO)' -or [int]$Pacote.minutos -ge 30) }
+}
+
+function Close-Trabalhos($Rodando, [switch]$Todos) {
+    foreach ($t in @($Rodando)) {
+        if ($Todos) { $t.Processo.WaitForExit() }
+        if (-not $t.Processo.HasExited) { continue }
+        # O trabalho registra o proprio resultado. Codigo diferente de zero quer dizer que ele morreu antes disso.
+        if ($t.Processo.ExitCode -ne 0) { Add-Resultado 'FALHOU' $t.Nome "processo saiu com $($t.Processo.ExitCode)"; Write-Log "[FALHOU] $($t.Nome) - processo saiu com $($t.Processo.ExitCode)" Red }
+        [void]$Rodando.Remove($t)
+    }
+}
+
+# Instala a lista, varios ao mesmo tempo quando a opcao esta ligada e CPU e RAM deixam. Sem a opcao, um por vez.
+function Invoke-Programas($Itens) {
+    $vagas = Get-VagasMaximas
+    if ($vagas -le 1 -or -not (Test-Path -LiteralPath (Join-Path $script:Dados 'paralelo.txt'))) {
+        foreach ($i in $Itens) { Invoke-Etapa $i.Nome { Install-Pacote $i.Pacote } }
+        return
+    }
+    Write-Log "sched.start itens=$(@($Itens).Count) vagas=$vagas nucleos=$([Environment]::ProcessorCount) limite=cpu<75 ram<85 livre>=1.5GB"
+    $rodando = New-Object Collections.ArrayList
+    $motivo = ''
+    foreach ($i in $Itens) {
+        if ((Test-Cancelado) -or (Test-Pular $i.Nome) -or (Test-Feito $i.Nome)) { Invoke-Etapa $i.Nome { Install-Pacote $i.Pacote }; continue }
+        if ($i.Sozinho) {
+            Close-Trabalhos $rodando -Todos
+            Invoke-Etapa $i.Nome { Install-Pacote $i.Pacote }
+            continue
+        }
+        while ($true) {
+            Close-Trabalhos $rodando
+            if ($rodando.Count -eq 0 -or (Test-Cancelado)) { break }
+            if ($rodando.Count -lt $vagas) {
+                $c = Get-Carga
+                if ($c.Cpu -lt 75 -and $c.Ram -lt 85 -and $c.LivreGB -ge 1.5) { break }
+                $agora = "cpu=$($c.Cpu)% ram=$($c.Ram)% livre=$($c.LivreGB)GB"
+                if ($motivo -ne $agora) { Write-Log "sched.wait rodando=$($rodando.Count) $agora"; $motivo = $agora }
+            }
+            Start-Sleep -Seconds 2
+        }
+        if (Test-Cancelado) { Invoke-Etapa $i.Nome { Install-Pacote $i.Pacote }; continue }
+        $item64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(([pscustomobject]@{ Nome = $i.Nome; Pacote = $i.Pacote } | ConvertTo-Json -Depth 4 -Compress)))
+        $p = Start-Process powershell.exe -NoNewWindow -PassThru -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\instalar-um.ps1`" -Item64 $item64"
+        $null = $p.Handle  # sem isso o ExitCode volta vazio no PowerShell 5.1
+        [void]$rodando.Add([pscustomobject]@{ Nome = $i.Nome; Processo = $p })
+        Write-Log "sched.slot pid=$($p.Id) rodando=$($rodando.Count)/$vagas $($i.Nome)"
+        # A carga do novo instalador leva alguns segundos para aparecer na medicao.
+        Start-Sleep -Seconds 3
+    }
+    Close-Trabalhos $rodando -Todos
+    Update-Path
+    Write-Log 'sched.done'
 }

@@ -22,20 +22,17 @@ Update-Path
 Write-Log 'Etapa 2 de 3: seus programas.' Cyan
 Wait-Internet
 Initialize-Winget
-foreach ($p in $programas.usuario) {
-    $nome = if ($p.nome) { $p.nome } else { $p.id }
-    Invoke-Etapa "Programa $nome" { Install-Pacote $p }
-}
+$fila = @(foreach ($p in $programas.usuario) { New-ItemPrograma "Programa $(if ($p.nome) { $p.nome } else { $p.id })" $p })
 
 # Programas anotados no PC antes de formatar: so os nomes, instalados na versao mais nova.
 $listaPc = Join-Path $script:Raiz 'programas-do-pc.txt'
 if (Test-Path -LiteralPath $listaPc) {
     $conhecidos = @($programas.maquina | ForEach-Object { $_.id }) + @($programas.usuario | ForEach-Object { $_.id })
     Get-Content -LiteralPath $listaPc | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') -and $conhecidos -notcontains $_ } | ForEach-Object {
-        $id = $_
-        Invoke-Etapa "Programa $id" { Install-Pacote ([pscustomobject]@{ id = $id }) }
+        $fila += New-ItemPrograma "Programa $_" ([pscustomobject]@{ id = $_ })
     }
 }
+Invoke-Programas $fila
 
 Write-Log 'Etapa 3 de 3: dependencias, skills e configuracoes.' Cyan
 $casa = $env:USERPROFILE
@@ -123,12 +120,13 @@ foreach ($e in $programas.vscode) {
 # Catalogo opcional: so o que foi marcado na interface, na versao mais nova.
 $arqCat = Join-Path $script:Dados 'catalogo.txt'
 if (Test-Path -LiteralPath $arqCat) {
-    Get-Content -LiteralPath $arqCat -Encoding UTF8 | ForEach-Object { $_.Trim() } | Where-Object { $_ } | ForEach-Object {
-        $id = $_
+    $catalogo = @(Get-Content -LiteralPath $arqCat -Encoding UTF8 | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    Invoke-Programas @($catalogo | Where-Object { $_ -notmatch '^(npm|uv):' } | ForEach-Object { New-ItemPrograma "Programa $_" ([pscustomobject]@{ id = $_ }) })
+    # npm e uv ficam em fila: dois processos mexendo na mesma pasta global se atrapalham.
+    foreach ($id in ($catalogo | Where-Object { $_ -match '^(npm|uv):' })) {
         Invoke-Etapa "Programa $id" {
             if ($id.StartsWith('npm:')) { $c = Invoke-ComTempo 'npm' "install -g $($id.Substring(4))" 15 "npm-$id"; if ($c -ne 0) { "FALHA: codigo $c" } else { 'OK' } }
-            elseif ($id.StartsWith('uv:')) { $c = Invoke-ComTempo 'uv' "tool install --python 3.12 --force $($id.Substring(3))" 20 "uv-$id"; if ($c -ne 0) { "FALHA: codigo $c" } else { 'OK' } }
-            else { Install-Pacote ([pscustomobject]@{ id = $id }) }
+            else { $c = Invoke-ComTempo 'uv' "tool install --python 3.12 --force $($id.Substring(3))" 20 "uv-$id"; if ($c -ne 0) { "FALHA: codigo $c" } else { 'OK' } }
         }
     }
 }

@@ -22,9 +22,6 @@ Initialize-Winget
 
 Invoke-Programas @(foreach ($p in $programas.maquina) { New-ItemPrograma "Programa $($p.id)" $p })
 
-Invoke-Etapa 'NET Framework 3.5' {
-    $c = Invoke-ComTempo 'dism.exe' '/Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart /Quiet' 30 'netfx3'
-    if ($c -in 0, 3010) { 'OK' } else { "FALHA: codigo $c" }
-}
+Invoke-Etapa 'NET Framework 3.5' { Enable-NetFx3 }
 
 Invoke-Etapa 'Limpeza do Windows' { & (Join-Path $PSScriptRoot 'limpeza.ps1') }

@@ -169,6 +169,7 @@ function Test-Internet {
 function Wait-Internet {
     $avisou = $false
     while (-not (Test-Internet)) {
+        if (Test-Cancelado) { Write-Log 'net.wait cancelled'; return }
         if (-not $avisou) {
             Write-Log 'Sem internet. Conecte no Wi-Fi na janela que abriu: o instalador continua sozinho quando a conexão voltar.' Yellow
             Start-Process 'ms-settings:network-wifi' -ErrorAction SilentlyContinue
@@ -202,28 +203,60 @@ function Initialize-Winget {
     & winget.exe source update --disable-interactivity 2>&1 | Out-Null
 }
 
+# Sinal de que o componente esta aqui mesmo sem o winget saber: o DirectX legado, por exemplo, nao aparece no "winget list".
+function Test-SinalPacote($Pacote) {
+    [bool]($Pacote.detecta -and (Test-Path -Path ([Environment]::ExpandEnvironmentVariables($Pacote.detecta))))
+}
+
 function Test-PacoteInstalado($Pacote) {
+    if (Test-SinalPacote $Pacote) { return $true }
     $fonte = if ($Pacote.fonte) { $Pacote.fonte } else { 'winget' }
     $saida = & winget.exe list --id $Pacote.id --exact --source $fonte --accept-source-agreements --disable-interactivity 2>&1 | Out-String
     return ($saida -match [regex]::Escape($Pacote.id))
 }
 
+function Test-AtualizacaoPendente($Pacote) {
+    $fonte = if ($Pacote.fonte) { $Pacote.fonte } else { 'winget' }
+    $saida = & winget.exe list --id $Pacote.id --exact --source $fonte --upgrade-available --accept-source-agreements --disable-interactivity 2>&1 | Out-String
+    return ($saida -match [regex]::Escape($Pacote.id))
+}
+
+function Test-NetFx3 {
+    (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5' -Name Install -ErrorAction SilentlyContinue).Install -eq 1
+}
+
+function Enable-NetFx3 {
+    $c = Invoke-ComTempo 'dism.exe' '/Online /Enable-Feature /FeatureName:NetFx3 /All /NoRestart /Quiet' 30 'netfx3'
+    if ($c -in 0, 3010) { 'OK' } else { "FALHA: codigo $c" }
+}
+
+# Componentes de jogos que faltam ou estao defasados. A lista e a mesma de Dependencias (AIO) em programas.json.
+# $Instalados e $Pendentes sao a saida inteira de "winget list": o ID so vale com espaco dos dois lados.
+function Get-ComponentesJogos($Programas, [string]$Instalados, [string]$Pendentes) {
+    foreach ($p in @($Programas.maquina | Where-Object { $_.grupo -eq 'Dependências (AIO)' })) {
+        $rx = "(?<!\S)$([regex]::Escape($p.id))(?!\S)"
+        if ($Pendentes -match $rx) { [pscustomobject]@{ rotulo = $p.rotulo; estado = 'atualizar'; pedido = "atualizar:$($p.id)" } }
+        elseif (-not ($Instalados -match $rx) -and -not (Test-SinalPacote $p)) { [pscustomobject]@{ rotulo = $p.rotulo; estado = 'faltando'; pedido = "winget:$($p.id)" } }
+    }
+    if (-not (Test-NetFx3)) { [pscustomobject]@{ rotulo = '.NET Framework 3.5'; estado = 'faltando'; pedido = 'netfx3' } }
+}
+
 # O resultado vem do "winget list" depois da instalacao, nao do codigo de saida do instalador.
-function Install-Pacote($Pacote) {
-    if (Test-PacoteInstalado $Pacote) { return 'OK' }
+function Install-Pacote($Pacote, [switch]$Atualizar) {
+    if (-not $Atualizar -and (Test-PacoteInstalado $Pacote)) { return 'OK' }
     $fonte = if ($Pacote.fonte) { $Pacote.fonte } else { 'winget' }
     $minutos = if ($Pacote.minutos) { [int]$Pacote.minutos } else { 25 }
-    $a = "install --id `"$($Pacote.id)`" --exact --source $fonte --accept-package-agreements --accept-source-agreements --disable-interactivity --silent"
+    $verbo = if ($Atualizar) { 'upgrade' } else { 'install' }
+    $a = "$verbo --id `"$($Pacote.id)`" --exact --source $fonte --accept-package-agreements --accept-source-agreements --disable-interactivity --silent"
     if ($Pacote.escopo) { $a += " --scope $($Pacote.escopo)" }
     if ($Pacote.override) { $a += " --override `"$($Pacote.override)`"" }
     $codigo = 0
     foreach ($tentativa in 1..2) {
         $codigo = Invoke-ComTempo 'winget.exe' $a $minutos "winget-$($Pacote.id)"
         # Windows Installer roda um por vez. Esperar a vez nao e falha nem gasta tentativa.
-        # 1618 = MSI ocupado. -1978268414 = 0x8A150102 (INSTALL_IN_PROGRESS do winget) como int32, que e o que o ExitCode devolve.
-        # Nao usar o literal 0x8A150102: o PowerShell o le como int64 positivo e a comparacao nunca casa.
+        # 1618 = MSI ocupado. -1978334974 = 0x8A150102 (INSTALL_IN_PROGRESS do winget) como int32, que e o que o ExitCode devolve.
         $vez = 0
-        while (($codigo -in 1618, -1978268414) -and $vez -lt 60 -and -not (Test-Cancelado)) {
+        while (($codigo -in 1618, -1978334974) -and $vez -lt 60 -and -not (Test-Cancelado)) {
             Write-Log "  | $($script:PrefixoSaida)installer.busy code=$codigo wait=20s"
             Start-Sleep -Seconds 20
             $vez++
@@ -231,8 +264,15 @@ function Install-Pacote($Pacote) {
         }
         if (Test-Cancelado) { return 'FALHA: cancelado' }
         Update-Path
-        if (Test-PacoteInstalado $Pacote) { break }
+        if ($Atualizar) { if (-not (Test-AtualizacaoPendente $Pacote)) { break } }
+        elseif (Test-PacoteInstalado $Pacote) { break }
+        # 1460 = Invoke-ComTempo encerrou por tempo. Repetir um instalador travado so dobraria a espera.
+        if ($codigo -eq 1460) { break }
         Start-Sleep -Seconds 15
+    }
+    if ($Atualizar) {
+        if (Test-AtualizacaoPendente $Pacote) { return "FALHA: a atualização não entrou (código $codigo)" }
+        return 'OK'
     }
     if ($Pacote.comando -and -not (Get-Command $Pacote.comando -ErrorAction SilentlyContinue)) {
         return "FALHA: comando '$($Pacote.comando)' não encontrado (código $codigo)"

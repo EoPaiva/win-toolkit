@@ -36,7 +36,7 @@ O **upaiva.dev** troca isso por uma tela. Você escolhe o que entra, acompanha o
 ## Recursos
 
 ### Instalar
-**23 dependências estilo AIO** (Visual C++ de 2005 em diante, .NET, DirectX, XNA, OpenAL, Java, WebView2), programas essenciais e um **catálogo opcional com 102 itens**, incluindo assistentes de IA, modelos locais, editores com agentes, DevOps, criação e jogos.
+**24 dependências estilo AIO** (Visual C++ de 2005 em diante, .NET, DirectX, XNA, PhysX, OpenAL, Java, WebView2), programas essenciais e um **catálogo opcional com 102 itens**, incluindo assistentes de IA, modelos locais, editores com agentes, DevOps, criação e jogos.
 
 - **Busca instantânea** por nome ou categoria
 - **Perfis prontos:** Completo, Básico, Gamer, Dev e IA, além de salvar e carregar a sua seleção
@@ -47,6 +47,8 @@ O **upaiva.dev** troca isso por uma tela. Você escolhe o que entra, acompanha o
 
 ### Drivers
 Busca no **catálogo oficial do Windows Update**, aponta dispositivos com erro e drivers antigos, cria um ponto de restauração e instala só o que você marcar. Para placas de vídeo, leva direto ao fabricante. Sem banco de drivers de terceiros.
+
+Também lista os **componentes de jogos** que faltam ou têm versão nova: Visual C++, .NET e .NET Framework 3.5, DirectX, XNA, PhysX, OpenAL, Java e outros. Eles vêm do winget e da Microsoft, e cada um pode ser desmarcado antes de instalar.
 
 ### Analisar
 Varredura **somente leitura** de segurança e saúde: Defender, Firewall, UAC, Secure Boot, TPM, VBS, proteção LSA, SMBv1, RDP, BitLocker, portas abertas, programas de inicialização, discos, travamentos e atualizações. Nada muda sem você marcar.

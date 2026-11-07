@@ -14,7 +14,7 @@ function Abrir-Busca {
 $Consulta = "IsInstalled=0 and Type='Driver' and IsHidden=0"
 
 if ($Acao -eq 'buscar') {
-    Write-Log '@total 4'
+    Write-Log '@total 5'
     Write-Log 'drivers.scan start source=Microsoft.Update.Session server=ssWindowsUpdate mode=read-only' Cyan
 
     Write-Log '[....] enum Win32_PnPSignedDriver'
@@ -58,7 +58,22 @@ if ($Acao -eq 'buscar') {
     Write-Log "  | vendor.tools=$($ferramentas.Count) vendor.pages=$($pagina.Count)"
     Write-Log '[ ok ] map vendor tools'
 
-    $saida = [ordered]@{ atualizacoes = @($lista); problemas = @($problemas); antigos = $antigos.Count; gpu = @($gpu); ferramentas = @($ferramentas); paginas = @($pagina); fabricante = "$($sistema.Manufacturer) $($sistema.Model)"; erro = $erroBusca }
+    Write-Log '[....] enum game components'
+    $componentes = @(); $erroComp = ''
+    try {
+        if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) { throw 'winget indisponível' }
+        $instalados = & winget.exe list --source winget --accept-source-agreements --disable-interactivity 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "winget list saiu com $LASTEXITCODE" }
+        # -1978335212 = nenhum pacote com atualizacao: nao e erro.
+        $pendentes = & winget.exe list --source winget --upgrade-available --accept-source-agreements --disable-interactivity 2>&1 | Out-String
+        if ($LASTEXITCODE -notin 0, -1978335212) { throw "winget list --upgrade-available saiu com $LASTEXITCODE" }
+        $componentes = @(Get-ComponentesJogos ((Read-Utf8 (Join-Path $script:Raiz 'programas.json')) | ConvertFrom-Json) $instalados $pendentes)
+        foreach ($k in $componentes) { Write-Log "  | component state=$($k.estado) :: $($k.rotulo)" }
+    } catch { $erroComp = $_.Exception.Message; Write-Log "  | components.error $erroComp" }
+    Write-Log "  | components.found=$($componentes.Count)"
+    Write-Log '[ ok ] enum game components'
+
+    $saida = [ordered]@{ atualizacoes = @($lista); componentes = @($componentes); erroComponentes = $erroComp; problemas = @($problemas); antigos = $antigos.Count; gpu = @($gpu); ferramentas = @($ferramentas); paginas = @($pagina); fabricante = "$($sistema.Manufacturer) $($sistema.Model)"; erro = $erroBusca }
     Write-Utf8 $arq ($saida | ConvertTo-Json -Depth 4)
     Write-Log "drivers.scan done updates=$($lista.Count) problems=$($problemas.Count) old=$($antigos.Count)" Green
     exit 0
@@ -74,16 +89,32 @@ try { Enable-ComputerRestore -Drive "$env:SystemDrive\" -ErrorAction Stop; Check
 catch { Write-Log "  | restore-point skipped: $($_.Exception.Message)" }
 Write-Log '[ ok ] Checkpoint-Computer -RestorePointType DEVICE_DRIVER_INSTALL'
 
-$ferr = @($pedidos | Where-Object { $_ -like 'winget:*' })
-if ($ferr.Count) { Wait-Internet; Initialize-Winget }
+$ferr = @($pedidos | Where-Object { $_ -match '^(winget|atualizar):' })
+if ($ferr.Count) {
+    Wait-Internet; Initialize-Winget
+    $conhecidos = @(((Read-Utf8 (Join-Path $script:Raiz 'programas.json')) | ConvertFrom-Json).maquina)
+}
 foreach ($f in $ferr) {
-    $id = $f.Substring(7)
+    $id = ($f -split ':', 2)[1]
+    if (Test-Cancelado) { Write-Log "[cancelado] Programa $id"; continue }
     Write-Log "[....] Programa $id"
-    $res = Install-Pacote ([pscustomobject]@{ id = $id })
+    # O pacote da lista traz o "detecta": sem ele, o DirectX instalado pareceria falha.
+    $pacote = @($conhecidos | Where-Object { $_.id -eq $id })[0]
+    if (-not $pacote) { $pacote = [pscustomobject]@{ id = $id } }
+    $res = Install-Pacote $pacote -Atualizar:($f -like 'atualizar:*')
     if ($res -eq 'OK') { Write-Log "[ ok ] Programa $id" } else { Write-Log "[FALHOU] Programa $id - $res" Red }
 }
 
-$guids = @($pedidos | Where-Object { $_ -notlike 'winget:*' })
+if ($pedidos -contains 'netfx3') {
+    if (Test-Cancelado) { Write-Log '[cancelado] NET Framework 3.5' }
+    else {
+        Write-Log '[....] NET Framework 3.5'
+        $res = Enable-NetFx3
+        if ($res -eq 'OK') { Write-Log '[ ok ] NET Framework 3.5' } else { Write-Log "[FALHOU] NET Framework 3.5 - $res" Red }
+    }
+}
+
+$guids = @($pedidos | Where-Object { $_ -notmatch '^(winget|atualizar):' -and $_ -ne 'netfx3' })
 if ($guids.Count) {
     $x = Abrir-Busca
     $r = $x.busca.Search($Consulta)

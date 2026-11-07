@@ -318,7 +318,7 @@ class Aplicativo {
 
     static readonly Dictionary<string, string[]> Secoes = new Dictionary<string, string[]> {
         { "Instalar", new[] { "01", "Programas e dependências", "Escolha o que entra.", "Tudo na versão mais nova." } },
-        { "Drivers", new[] { "02", "Windows Update e fabricantes", "Drivers oficiais.", "Sem banco de terceiros." } },
+        { "Drivers", new[] { "02", "Windows Update, fabricantes e componentes de jogos", "Drivers oficiais.", "Sem banco de terceiros." } },
         { "Analisar", new[] { "03", "Segurança e saúde do PC", "Análise do sistema.", "Só lê. Nada muda sem você marcar." } },
         { "Otimizar", new[] { "04", "Quatro níveis reversíveis", "Menos serviços e apps.", "Defender e Firewall ficam ligados." } },
         { "Ferramentas", new[] { "05", "Rotinas de manutenção", "Manutenção do Windows.", "Uma rotina por vez." } },
@@ -621,7 +621,7 @@ class Aplicativo {
 
     void IniciarBuscaDrivers() {
         if (emAndamento) return;
-        abaDepois = "Drivers"; tipoExec = "drivers"; total = 4;
+        abaDepois = "Drivers"; tipoExec = "drivers"; total = 5;
         Executar("drivers.ps1", "-Acao buscar", false, "Buscando drivers.");
     }
 
@@ -638,7 +638,9 @@ class Aplicativo {
         var ups = (ArrayList)j["atualizacoes"]; var prob = (ArrayList)j["problemas"];
         int antigos = Convert.ToInt32(j["antigos"]);
         string erro = j.ContainsKey("erro") ? (string)j["erro"] : "";
-        C<TextBlock>("ResumoDrivers").Text = ups.Count + " atualizações   " + prob.Count + " dispositivos com erro   " + antigos + " drivers com mais de 3 anos";
+        var comps = (ArrayList)j["componentes"];
+        string erroComp = (string)j["erroComponentes"];
+        C<TextBlock>("ResumoDrivers").Text = ups.Count + " atualizações   " + comps.Count + " componentes de jogos   " + prob.Count + " dispositivos com erro   " + antigos + " drivers com mais de 3 anos";
         if (erro.Length > 0) p.Children.Add(Fila(new TextBlock { Text = "A busca no Windows Update falhou: " + erro, Foreground = Sinal, FontSize = 13, TextWrapping = TextWrapping.Wrap }));
         if (prob.Count > 0) {
             p.Children.Add(Secao("Dispositivos com erro"));
@@ -653,6 +655,18 @@ class Aplicativo {
             var cx = new CheckBox { IsChecked = true, Content = txt };
             cx.Click += delegate { AtualizarPainel(); };
             driversMarcaveis.Add(new Marcavel { Id = (string)u["id"], Caixa = cx });
+            p.Children.Add(Fila(cx));
+        }
+        p.Children.Add(Secao("Componentes de jogos"));
+        if (erroComp.Length > 0) p.Children.Add(Fila(new TextBlock { Text = "A busca de componentes falhou: " + erroComp, Foreground = Sinal, FontSize = 13, TextWrapping = TextWrapping.Wrap }));
+        else if (comps.Count == 0) p.Children.Add(Fila(new TextBlock { Text = "Todos instalados e atualizados.", Foreground = Mudo, FontSize = 13 }));
+        foreach (Dictionary<string, object> c in comps) {
+            var txt = new StackPanel();
+            txt.Children.Add(new TextBlock { Text = (string)c["rotulo"], FontSize = 13, Foreground = Tinta });
+            txt.Children.Add(Dado((string)c["estado"] == "atualizar" ? "versão nova disponível" : "não instalado"));
+            var cx = new CheckBox { IsChecked = true, Content = txt };
+            cx.Click += delegate { AtualizarPainel(); };
+            driversMarcaveis.Add(new Marcavel { Id = (string)c["pedido"], Caixa = cx });
             p.Children.Add(Fila(cx));
         }
         var ferr = (ArrayList)j["ferramentas"];

@@ -162,4 +162,3 @@ if ($falhas.Count -eq 0) {
 }
 Write-Log "Relatorio completo: $script:Relatorio"
 if (-not $env:SETUP_GUI) { Read-Host 'Enter para fechar' | Out-Null }
-Read-Host 'Enter para fechar' | Out-Null

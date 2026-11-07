@@ -108,14 +108,18 @@ function Test-PacoteSalvo([string]$Pasta, $Registrado) {
 
 # Decide cada dispositivo do registro com os dados de agora; a tela e o Voltar usam a mesma conta.
 function Get-PlanoVolta([string]$Pasta, $Registro, $Todos) {
-    foreach ($reg in @($Registro.dispositivos | Where-Object { $_ })) {
+    $plano = @(foreach ($reg in @($Registro.dispositivos | Where-Object { $_ })) {
         $atual = @(@($Todos) | Where-Object { $_ -and $_.DeviceId -eq $reg.deviceId })[0]
         $dec = Test-PodeVoltar $reg $atual $Todos
         if ($dec.Pode -and -not (Test-PacoteSalvo $Pasta $reg)) {
             $dec = [pscustomobject]@{ Pode = $false; Motivo = 'O pacote salvo não está mais na pasta do backup.'; Critico = $true }
         }
         [pscustomobject]@{ Registrado = $reg; Atual = $atual; Pode = $dec.Pode; Motivo = $dec.Motivo; Critico = $dec.Critico }
-    }
+    })
+    # /delete-driver /uninstall atinge todos os dispositivos do pacote: um item critico recusa o registro inteiro.
+    $bloqueio = @($plano | Where-Object { $_.Critico })
+    if ($bloqueio.Count) { foreach ($p in @($plano | Where-Object { -not $_.Critico })) { $p.Pode = $false; $p.Motivo = "Recusado: $($bloqueio[0].Motivo)" } }
+    $plano
 }
 
 # Um registro com erro aparece como ilegivel e nunca e apagado aqui.
@@ -164,40 +168,35 @@ function Invoke-VoltarDriver([string]$Id, [string]$Pasta, [scriptblock]$LerDispo
         if ($Resultado -eq 'nao-voltou') { Write-Log "[FALHOU] Voltar $nome$sufixo" Red } else { Write-Log "[ ok ] Voltar $nome$sufixo" }
     }
     $naoVoltou = "Não voltou. Tente Reverter driver no Gerenciador de Dispositivos. O backup continua em $dir."
-    $bloqueio = @($plano | Where-Object { $_.Critico })
-    if ($bloqueio.Count) {
-        # /delete-driver /uninstall atinge todos os dispositivos do pacote: um item critico recusa o registro inteiro.
-        foreach ($p in $plano) { & $fim $p 'nao-voltou' $(if ($p.Critico) { $p.Motivo } else { "Recusado: $($bloqueio[0].Motivo)" }) }
-    } else {
-        foreach ($p in @($plano | Where-Object { -not $_.Pode })) {
-            if ($p.Atual -and $p.Motivo -like 'Já está nessa versão*') { & $fim $p 'voltou' 'já estava na versão salva' } else { & $fim $p 'nao-voltou' $p.Motivo }
+    # Um item critico ja recusou o registro inteiro em Get-PlanoVolta: nenhum grupo sobra para remover.
+    foreach ($p in @($plano | Where-Object { -not $_.Pode })) {
+        if ($p.Atual -and $p.Motivo -like 'Já está nessa versão*') { & $fim $p 'voltou' 'já estava na versão salva' } else { & $fim $p 'nao-voltou' $p.Motivo }
+    }
+    $preparado = $false
+    foreach ($grupo in @($plano | Where-Object { $_.Pode } | Group-Object { "$($_.Atual.Inf)".ToLowerInvariant() })) {
+        $itens = @($grupo.Group); $inf = $grupo.Name
+        if (Test-Cancelado) { foreach ($p in $itens) { & $fim $p 'nao-voltou' 'Cancelado antes de começar.' }; continue }
+        if (-not $preparado) { $null = & $AntesDeRemover; $preparado = $true }
+        foreach ($p in $itens) { Write-Log "[....] Voltar $($p.Registrado.nome)" }
+        # Daqui em diante o pacote termina: parar no meio deixaria o dispositivo sem driver.
+        $codigo = Invoke-Pnputil @('/delete-driver', $inf, '/uninstall')
+        if ($codigo -notin 0, 3010) { foreach ($p in $itens) { & $fim $p 'nao-voltou' "pnputil /delete-driver $inf saiu com $codigo. Nada foi trocado." }; continue }
+        $reinicio = $codigo -eq 3010
+        $salvos = @($itens | Where-Object { $_.Registrado.exportado })
+        foreach ($sub in @($salvos | ForEach-Object { Get-PastaPacote $dir $_.Registrado } | Select-Object -Unique)) {
+            $c2 = Invoke-Pnputil @('/add-driver', (Join-Path $sub '*.inf'), '/subdirs', '/install')
+            if ($c2 -eq 3010) { $reinicio = $true }
         }
-        $preparado = $false
-        foreach ($grupo in @($plano | Where-Object { $_.Pode } | Group-Object { "$($_.Atual.Inf)".ToLowerInvariant() })) {
-            $itens = @($grupo.Group); $inf = $grupo.Name
-            if (Test-Cancelado) { foreach ($p in $itens) { & $fim $p 'nao-voltou' 'Cancelado antes de começar.' }; continue }
-            if (-not $preparado) { $null = & $AntesDeRemover; $preparado = $true }
-            foreach ($p in $itens) { Write-Log "[....] Voltar $($p.Registrado.nome)" }
-            # Daqui em diante o pacote termina: parar no meio deixaria o dispositivo sem driver.
-            $codigo = Invoke-Pnputil @('/delete-driver', $inf, '/uninstall')
-            if ($codigo -notin 0, 3010) { foreach ($p in $itens) { & $fim $p 'nao-voltou' "pnputil /delete-driver $inf saiu com $codigo. Nada foi trocado." }; continue }
-            $reinicio = $codigo -eq 3010
-            $salvos = @($itens | Where-Object { $_.Registrado.exportado })
-            foreach ($sub in @($salvos | ForEach-Object { Get-PastaPacote $dir $_.Registrado } | Select-Object -Unique)) {
-                $c2 = Invoke-Pnputil @('/add-driver', (Join-Path $sub '*.inf'), '/subdirs', '/install')
-                if ($c2 -eq 3010) { $reinicio = $true }
-            }
-            if ($salvos.Count -lt $itens.Count) {
-                $c3 = Invoke-Pnputil @('/scan-devices')
-                if ($c3 -eq 3010) { $reinicio = $true }
-            }
-            $agora = @(& $LerDispositivos)
-            foreach ($p in $itens) {
-                $d = @($agora | Where-Object { $_ -and $_.DeviceId -eq $p.Registrado.deviceId })[0]
-                if ($d -and $d.Versao -eq $p.Registrado.versaoAntes) { & $fim $p 'voltou' '' }
-                elseif ($reinicio -or ($d -and $d.Versao -eq $p.Atual.Versao)) { & $fim $p 'reiniciar' 'reinicie o PC para terminar' }
-                else { & $fim $p 'nao-voltou' $naoVoltou }
-            }
+        if ($salvos.Count -lt $itens.Count) {
+            $c3 = Invoke-Pnputil @('/scan-devices')
+            if ($c3 -eq 3010) { $reinicio = $true }
+        }
+        $agora = @(& $LerDispositivos)
+        foreach ($p in $itens) {
+            $d = @($agora | Where-Object { $_ -and $_.DeviceId -eq $p.Registrado.deviceId })[0]
+            if ($d -and $d.Versao -eq $p.Registrado.versaoAntes) { & $fim $p 'voltou' '' }
+            elseif ($reinicio -or ($d -and $d.Versao -eq $p.Atual.Versao)) { & $fim $p 'reiniciar' 'reinicie o PC para terminar' }
+            else { & $fim $p 'nao-voltou' $naoVoltou }
         }
     }
     foreach ($p in $plano) { $res[$p.Registrado.deviceId] }

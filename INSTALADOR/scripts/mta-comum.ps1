@@ -3,6 +3,8 @@
 
 $script:ChavesLeve = 'grass', 'heat_haze', 'tyre_smoke_enabled', 'volumetric_shadows'
 $script:UrlOffsets = 'https://wiki.multitheftauto.com/wiki/Famous_crash_offsets_and_their_meaning'
+$script:PadroesMods = 'd3d9.dll', '*.asi', 'modloader', 'cleo', 'scripts'
+$script:PacotesMta = 'Microsoft.DirectX', 'Microsoft.VCRedist.2008.x86', 'Microsoft.VCRedist.2015+.x86'
 
 # Causas conhecidas segundo a wiki do MTA. O offset e uma pista, nao uma certeza: a mensagem precisa dizer isso.
 $script:OffsetsMta = @{
@@ -150,6 +152,30 @@ function Get-DonoSessao {
     $e = Get-CimInstance Win32_Process -Filter "Name='explorer.exe'" | Select-Object -First 1
     if (-not $e) { return '' }
     "$((Invoke-CimMethod -InputObject $e -MethodName GetOwner).User)"
+}
+
+function Get-ModsGta([string]$PastaGta) {
+    if (-not $PastaGta -or -not (Test-Path -LiteralPath $PastaGta)) { return }
+    foreach ($p in $script:PadroesMods) { Get-ChildItem -LiteralPath $PastaGta -Filter $p -Force -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName } }
+}
+
+# So os tres pacotes que o MTA usa, mesmo que mta.json traga outra coisa.
+function Install-ComponentesMta($Pedidos, $Programas) {
+    $validos = @($Pedidos | Where-Object { $_ -match '^(winget|atualizar):' -and $script:PacotesMta -contains ($_ -split ':', 2)[1] })
+    if (-not $validos.Count) { return }
+    Wait-Internet
+    Initialize-Winget
+    $falhas = 0
+    foreach ($pedido in $validos) {
+        if (Test-Cancelado) { break }
+        $id = ($pedido -split ':', 2)[1]
+        $pacote = @($Programas.maquina | Where-Object { $_.id -eq $id })[0]
+        if (-not $pacote) { $pacote = [pscustomobject]@{ id = $id } }
+        $res = Install-Pacote $pacote -Atualizar:($pedido -like 'atualizar:*')
+        Write-Log "  | $id => $res"
+        if ($res -ne 'OK') { $falhas++ }
+    }
+    if ($falhas) { throw "$falhas de $($validos.Count) componentes nao entraram" }
 }
 
 # Regras de "Aparece" e "Marcada". $Estado tem o formato de mta.json.

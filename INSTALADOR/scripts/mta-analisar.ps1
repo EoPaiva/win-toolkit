@@ -36,7 +36,7 @@ Passo 'Ultimo crash' {
     $c = Get-UltimoCrash (Join-Path $mta.PastaMta 'MTA\core.log')
     if (-not $c) { Write-Log '  | nenhum crash registrado'; return }
     $cat = Get-CategoriaOffset $c.Offset $c.Modulo $c.Codigo
-    $estado.crash = [ordered]@{ hora = $c.Hora.ToString('s'); modulo = (Split-Path -Leaf $c.Modulo); codigo = $c.Codigo; offset = $c.Offset; categoria = $cat.Categoria; mensagem = $cat.Mensagem }
+    $estado.crash = [ordered]@{ hora = $c.Hora.ToString('s'); modulo = $(if ($c.Modulo) { Split-Path -Leaf $c.Modulo } else { 'fora de qualquer módulo' }); codigo = $c.Codigo; offset = $c.Offset; categoria = $cat.Categoria; mensagem = $cat.Mensagem }
     Write-Log "  | crash offset=$($c.Offset) code=$($c.Codigo) category=$($cat.Categoria)"
 }
 

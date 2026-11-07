@@ -264,8 +264,12 @@ class Aplicativo {
         };
 
         // Instalar ou otimizar aqui alteraria o PC de origem das configs. Analisar, simular e buscar so leem.
-        if (string.Equals(Environment.GetEnvironmentVariable("COMPUTERNAME"), "MARINETE", StringComparison.OrdinalIgnoreCase)) { podeAlterar = false; Aviso("Somente leitura neste PC: é a origem das configs. Só Analisar, Simular, Buscar drivers e MTA funcionam."); }
-        else if (new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) { podeAlterar = false; podeAlterarMta = false; Aviso("Abra com dois cliques, sem Executar como administrador. O Windows pede permissão na hora certa."); }
+        bool origem = string.Equals(Environment.GetEnvironmentVariable("COMPUTERNAME"), "MARINETE", StringComparison.OrdinalIgnoreCase);
+        bool admin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+        var permissoes = Permissoes(origem, admin);
+        podeAlterar = permissoes[0]; podeAlterarMta = permissoes[1];
+        if (admin) Aviso("Abra com dois cliques, sem Executar como administrador. O Windows pede permissão na hora certa.");
+        else if (origem) Aviso("Somente leitura neste PC: é a origem das configs. Só Analisar, Simular, Buscar drivers e MTA funcionam.");
         if (semElevar && args.Contains("--permitir")) { podeAlterar = true; podeAlterarMta = true; C<TextBlock>("Aviso").Visibility = Visibility.Collapsed; }
 
         string foto = Arg(args, "--foto"), demo = Arg(args, "--demo"), aba = Arg(args, "--aba"), autoSim = Arg(args, "--auto-simular"), busca = Arg(args, "--busca");
@@ -907,6 +911,9 @@ class Aplicativo {
     }
 
     // ---------- anti-crash MTA ----------
+
+    // [0] instalar, otimizar e ferramentas; [1] aba MTA. Aberto como administrador, nada altera nada.
+    static bool[] Permissoes(bool origem, bool admin) { return new[] { !origem && !admin, !admin }; }
 
     bool BackupMtaExiste() { return File.Exists(Path.Combine(dados, "mta-antes.json")); }
 

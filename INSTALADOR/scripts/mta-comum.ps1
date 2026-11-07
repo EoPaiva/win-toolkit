@@ -43,8 +43,10 @@ function Get-UltimoCrash([string]$Arquivo) {
     for ($i = $linhas.Count - 1; $i -ge 0; $i--) { if ($linhas[$i] -match '^Offset = 0x[0-9A-Fa-f]+') { $fim = $i; break } }
     if ($fim -lt 0) { return $null }
     $campos = @{}
+    # Para no comeco do registro: Module vem vazio em crash fora de qualquer modulo, e nao pode herdar o do crash anterior.
     for ($i = $fim; $i -ge 0 -and $campos.Count -lt 4; $i--) {
-        if ($linhas[$i] -match '^(Time|Module|Code|Offset) = (.+)$' -and -not $campos.ContainsKey($Matches[1])) { $campos[$Matches[1]] = $Matches[2].Trim() }
+        if ($i -lt $fim -and $linhas[$i] -match '^(Offset = |\*\* -- )') { break }
+        if ($linhas[$i] -match '^(Time|Module|Code|Offset) =\s?(.*)$' -and -not $campos.ContainsKey($Matches[1])) { $campos[$Matches[1]] = $Matches[2].Trim() }
     }
     $hora = $null
     if ($campos['Time']) {
@@ -58,12 +60,12 @@ function Get-UltimoCrash([string]$Arquivo) {
 
 function Get-CategoriaOffset([string]$Offset, [string]$Modulo, [string]$Codigo) {
     $valor = ($Offset -replace '^0[xX]', '').ToUpper()
-    $doJogo = (Split-Path -Leaf $Modulo) -match '^(gta_sa|proxy_sa)\.exe$'
+    $doJogo = $Modulo -and (Split-Path -Leaf $Modulo) -match '^(gta_sa|proxy_sa)\.exe$'
     if ($doJogo) {
         foreach ($cat in $script:OffsetsMta.Keys) {
             if ($script:OffsetsMta[$cat].Lista -contains $valor) { return [pscustomobject]@{ Categoria = $cat; Mensagem = $script:OffsetsMta[$cat].Mensagem } }
         }
-    } elseif ($Codigo -match 'E06D7363') {
+    } elseif ($Modulo -and $Codigo -match 'E06D7363') {
         return [pscustomobject]@{ Categoria = 'memoria'; Mensagem = $script:OffsetsMta['memoria'].Mensagem }
     }
     [pscustomobject]@{ Categoria = 'desconhecida'; Mensagem = "Causa desconhecida para o Offset $valor. Consulte $($script:UrlOffsets)" }
@@ -112,6 +114,17 @@ function Get-ConfigMta([string]$Arquivo, [string[]]$Chaves) {
     $saida
 }
 
+# Move-Item -Force pode so registrar o erro e seguir: Replace lanca, e um erro nunca passa por sucesso.
+function Set-ArquivoFinal([string]$Temp, [string]$Arquivo) {
+    if (Test-Path -LiteralPath $Arquivo) { [IO.File]::Replace($Temp, $Arquivo, [NullString]::Value) } else { [IO.File]::Move($Temp, $Arquivo) }
+}
+
+function Write-Atomico([string]$Caminho, [string]$Texto) {
+    $temp = "$Caminho.tmp"
+    try { Write-Utf8 $temp $Texto; Set-ArquivoFinal $temp $Caminho }
+    finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue } }
+}
+
 # Altera so as chaves pedidas e devolve os valores anteriores. Valor $null remove a chave.
 # Grava em temporario e troca no fim: um erro nunca deixa o arquivo pela metade.
 function Set-ConfigMta([string]$Arquivo, [hashtable]$Valores) {
@@ -133,7 +146,7 @@ function Set-ConfigMta([string]$Arquivo, [hashtable]$Valores) {
     try {
         $escritor = New-Object IO.StreamWriter($temp, $false, (New-Object Text.UTF8Encoding($false)))
         try { $doc.Save($escritor) } finally { $escritor.Close() }
-        Move-Item -LiteralPath $temp -Destination $Arquivo -Force
+        Set-ArquivoFinal $temp $Arquivo
     } finally {
         if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue }
     }

@@ -48,6 +48,15 @@ O **upaiva.dev** troca isso por uma tela. Você escolhe o que entra, acompanha o
 ### Drivers
 Busca no **catálogo oficial do Windows Update**, aponta dispositivos com erro e drivers antigos, cria um ponto de restauração e instala só o que você marcar. Para placas de vídeo, leva direto ao fabricante. Sem banco de drivers de terceiros.
 
+**Backup de drivers:** antes de instalar uma atualização do Windows Update, guarda o driver que ela vai substituir. Se o backup falha, aquela atualização não é instalada. Atualização sem dispositivo conectado aparece desmarcada.
+
+Na seção **Backups de drivers**, o botão **Voltar** tenta devolver o driver guardado: cria um ponto de restauração, tira o driver novo com `pnputil` e instala o antigo. No fim, lê a versão real e diz se voltou, se falta reiniciar ou se não voltou. Os limites:
+- A volta não é garantida. Quando não dá certo, a tela diz e indica o Reverter driver do Gerenciador de Dispositivos.
+- O Windows Update pode reinstalar o driver novo depois.
+- Disco, controladoras, processador, firmware, segurança e outros dispositivos essenciais ficam de fora, e também qualquer pacote que um deles use.
+- Vale só para atualizações do Windows Update instaladas pelo app. Para os demais drivers, use "Preparar formatação".
+- Os backups só são apagados pelo botão Apagar.
+
 Também lista os **componentes de jogos** que faltam ou têm versão nova: Visual C++, .NET e .NET Framework 3.5, DirectX, XNA, PhysX, OpenAL, Java e outros. Eles vêm do winget e da Microsoft, e cada um pode ser desmarcado antes de instalar.
 
 ### Analisar
@@ -158,7 +167,7 @@ INSTALADOR/     O que o .exe usa em execução
 | | |
 |---|---|
 | **Testado de ponta a ponta** | Compilação, análise real, busca real de drivers, simulação da Altíssima, restauração das configs em pasta temporária, travas contra rodar no PC de origem e todo o fluxo da interface, incluindo o cancelamento e o escalonador da instalação simultânea, com instalador de teste |
-| **Falta testar em máquina real** | Instalação real dos programas, instalação de drivers, aplicar e reverter níveis, instalação simultânea com instaladores reais, correções da análise, ferramentas, reinstalação de apps, cancelamento em processo elevado, Preparar formatação com `netsh` e `pnputil` reais e aplicar as correções do Anti-crash MTA |
+| **Falta testar em máquina real** | Instalação real dos programas, instalação de drivers, aplicar e reverter níveis, instalação simultânea com instaladores reais, correções da análise, ferramentas, reinstalação de apps, cancelamento em processo elevado, Preparar formatação com `netsh` e `pnputil` reais, aplicar as correções do Anti-crash MTA, e o backup e o Voltar de drivers com `pnputil` real |
 
 O ganho de desempenho dos níveis não foi medido. Na Altíssima, a maior parte dos serviços da lista já fica parada até ser chamada, então espere pouco ganho e confira na simulação o que muda no seu PC.
 

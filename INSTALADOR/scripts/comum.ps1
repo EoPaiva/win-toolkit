@@ -220,9 +220,10 @@ function Install-Pacote($Pacote) {
     foreach ($tentativa in 1..2) {
         $codigo = Invoke-ComTempo 'winget.exe' $a $minutos "winget-$($Pacote.id)"
         # Windows Installer roda um por vez. Esperar a vez nao e falha nem gasta tentativa.
-        # 1618 e o MSI ocupado; 0x8A150102 e INSTALL_IN_PROGRESS do winget (o PowerShell le esse hex como o mesmo int do ExitCode).
+        # 1618 = MSI ocupado. -1978268414 = 0x8A150102 (INSTALL_IN_PROGRESS do winget) como int32, que e o que o ExitCode devolve.
+        # Nao usar o literal 0x8A150102: o PowerShell o le como int64 positivo e a comparacao nunca casa.
         $vez = 0
-        while (($codigo -in 1618, 0x8A150102) -and $vez -lt 60 -and -not (Test-Cancelado)) {
+        while (($codigo -in 1618, -1978268414) -and $vez -lt 60 -and -not (Test-Cancelado)) {
             Write-Log "  | $($script:PrefixoSaida)installer.busy code=$codigo wait=20s"
             Start-Sleep -Seconds 20
             $vez++

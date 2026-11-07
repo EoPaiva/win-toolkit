@@ -1,6 +1,7 @@
 ﻿# Drivers: busca no catalogo oficial do Windows Update e sugere a ferramenta do fabricante. A busca so le.
 param([ValidateSet('buscar', 'instalar')][string]$Acao = 'buscar', [string]$Ids = '')
 . "$PSScriptRoot\comum.ps1"
+. "$PSScriptRoot\drivers-backup.ps1"
 $arq = Join-Path $script:Dados 'drivers.json'
 
 function Abrir-Busca {
@@ -118,7 +119,8 @@ $guids = @($pedidos | Where-Object { $_ -notmatch '^(winget|atualizar):' -and $_
 if ($guids.Count) {
     $x = Abrir-Busca
     $r = $x.busca.Search($Consulta)
-    $reiniciar = $false
+    $script:reiniciar = $false
+    $pastaBackups = Join-Path $script:Dados 'drivers-backup'
     foreach ($g in $guids) {
         if (Test-Cancelado) { Write-Log "[cancelado] $g"; continue }
         $u = $null; foreach ($c in $r.Updates) { if ($c.Identity.UpdateID -eq $g) { $u = $c; break } }
@@ -126,23 +128,29 @@ if ($guids.Count) {
         $nome = $u.Title
         Write-Log "[....] $nome"
         try {
-            if (-not $u.EulaAccepted) { $u.AcceptEula() }
-            $col = New-Object -ComObject Microsoft.Update.UpdateColl
-            [void]$col.Add($u)
-            Write-Log "  | IUpdateDownloader.Download size=$([Math]::Round($u.MaxDownloadSize / 1MB, 1))MB"
-            $d = $x.sessao.CreateUpdateDownloader(); $d.Updates = $col
-            $rd = $d.Download()
-            Write-Log "  | download.ResultCode=$($rd.ResultCode)"
-            if ($rd.ResultCode -notin 2, 3) { throw "download ResultCode=$($rd.ResultCode)" }
-            $i = $x.sessao.CreateUpdateInstaller(); $i.Updates = $col
-            $ri = $i.Install()
-            $hr = '0x{0:X8}' -f $ri.HResult
-            Write-Log "  | install.ResultCode=$($ri.ResultCode) HResult=$hr RebootRequired=$($ri.RebootRequired)"
-            if ($ri.RebootRequired) { $reiniciar = $true }
-            if ($ri.ResultCode -notin 2, 3) { throw "install ResultCode=$($ri.ResultCode) HResult=$hr" }
-            Write-Log "[ ok ] $nome"
+            # Le de novo a cada atualizacao: a anterior pode ter trocado o driver do mesmo dispositivo.
+            $alvos = @(Find-DispositivosAlvo "$($u.DriverHardwareID)" @(Get-DispositivosPnp))
+            Write-Log "  | backup.targets=$($alvos.Count) hwid=$($u.DriverHardwareID)"
+            $feito = Invoke-ComBackup $nome $g $alvos {
+                if (-not $u.EulaAccepted) { $u.AcceptEula() }
+                $col = New-Object -ComObject Microsoft.Update.UpdateColl
+                [void]$col.Add($u)
+                Write-Log "  | IUpdateDownloader.Download size=$([Math]::Round($u.MaxDownloadSize / 1MB, 1))MB"
+                $d = $x.sessao.CreateUpdateDownloader(); $d.Updates = $col
+                $rd = $d.Download()
+                Write-Log "  | download.ResultCode=$($rd.ResultCode)"
+                if ($rd.ResultCode -notin 2, 3) { throw "download ResultCode=$($rd.ResultCode)" }
+                $i = $x.sessao.CreateUpdateInstaller(); $i.Updates = $col
+                $ri = $i.Install()
+                $hr = '0x{0:X8}' -f $ri.HResult
+                Write-Log "  | install.ResultCode=$($ri.ResultCode) HResult=$hr RebootRequired=$($ri.RebootRequired)"
+                # O bloco roda em escopo filho: sem script:, a marca de reinicio se perderia.
+                if ($ri.RebootRequired) { $script:reiniciar = $true }
+                if ($ri.ResultCode -notin 2, 3) { throw "install ResultCode=$($ri.ResultCode) HResult=$hr" }
+            } $pastaBackups
+            if ($feito) { Write-Log "[ ok ] $nome" }
         } catch { Write-Log "[FALHOU] $nome - $($_.Exception.Message)" Red }
     }
-    if ($reiniciar) { Write-Log 'drivers.install reboot.required=True: reinicie o PC' Yellow }
+    if ($script:reiniciar) { Write-Log 'drivers.install reboot.required=True: reinicie o PC' Yellow }
 }
 Write-Log 'drivers.install done' Green

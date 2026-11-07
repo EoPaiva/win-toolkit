@@ -72,7 +72,8 @@ Acao ("Cache do Windows Update (~$mbWU MB)") {
 if (-not $Simular) { $script:TotalMB += $mbWU }
 
 Acao 'Cache de distribuicao (Delivery Optimization)' { Delete-DeliveryOptimizationCache -Force -ErrorAction SilentlyContinue }
-Acao 'Componentes antigos (DISM StartComponentCleanup)' { & dism.exe /Online /Cleanup-Image /StartComponentCleanup /NoRestart | Out-Null }
+# Pode levar dezenas de minutos: com limite de tempo, saida visivel e Cancelar.
+Acao 'Componentes antigos (DISM StartComponentCleanup)' { [void](Invoke-ComTempo 'dism.exe' '/Online /Cleanup-Image /StartComponentCleanup /NoRestart' 30 'dism-cleanup') }
 Acao 'Lixeira' { Clear-RecycleBin -Force -ErrorAction SilentlyContinue }
 Acao 'Cache de DNS' { & ipconfig.exe /flushdns | Out-Null }
 

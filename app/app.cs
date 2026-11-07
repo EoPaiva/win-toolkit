@@ -175,6 +175,9 @@ class Aplicativo {
     Process processo;
     DispatcherTimer relogio, animacao;
     bool emAndamento, atualizando, terminado, podeAlterar = true, semElevar, cancelando;
+    // A aba MTA so mexe nas configuracoes do jogo: vale tambem no PC de origem das configs.
+    bool podeAlterarMta = true, mtaAnalisado;
+    List<Marcavel> correcoesMta = new List<Marcavel>();
     DateTime inicioExec;
     ulong antIdle, antTotal; long antRede, ultimoCpu; DateTime antRedeT = DateTime.Now;
     Planeta planeta;
@@ -239,6 +242,8 @@ class Aplicativo {
         C<Button>("Reverter").Click += delegate { RodarOtimizar(false, true); };
         C<Button>("AnalisarDeNovo").Click += delegate { IniciarAnalise(); };
         C<Button>("BuscarDeNovo").Click += delegate { IniciarBuscaDrivers(); };
+        C<Button>("AnalisarMta").Click += delegate { IniciarAnaliseMta(); };
+        C<Button>("ReverterMta").Click += delegate { ReverterCorrecoesMta(); };
         C<Button>("ConfirmaNao").Click += delegate { C<Grid>("Confirma").Visibility = Visibility.Collapsed; };
         C<Button>("ConfirmaSim").Click += delegate { C<Grid>("Confirma").Visibility = Visibility.Collapsed; if (aoConfirmar != null) aoConfirmar(); };
         C<Button>("AbrirPaleta").Click += delegate { AbrirPaleta(); };
@@ -251,7 +256,7 @@ class Aplicativo {
             if (e.Key == Key.K && Keyboard.Modifiers == ModifierKeys.Control) { AbrirPaleta(); e.Handled = true; }
             else if (e.Key == Key.Escape && C<Grid>("Paleta").Visibility == Visibility.Visible) { FecharPaleta(); e.Handled = true; }
         };
-        foreach (var a in new[] { "Instalar", "Drivers", "Analisar", "Otimizar", "Ferramentas", "Terminal" }) { var n = a; C<RadioButton>("Aba" + a).Checked += delegate { TrocarAba(n); }; }
+        foreach (var a in new[] { "Instalar", "Drivers", "Analisar", "Otimizar", "Ferramentas", "MTA", "Terminal" }) { var n = a; C<RadioButton>("Aba" + a).Checked += delegate { TrocarAba(n); }; }
         w.Closing += (o, e) => {
             if (!emAndamento || fecharMesmoAssim) return;
             e.Cancel = true;
@@ -259,9 +264,9 @@ class Aplicativo {
         };
 
         // Instalar ou otimizar aqui alteraria o PC de origem das configs. Analisar, simular e buscar so leem.
-        if (string.Equals(Environment.GetEnvironmentVariable("COMPUTERNAME"), "MARINETE", StringComparison.OrdinalIgnoreCase)) { podeAlterar = false; Aviso("Somente leitura neste PC: é a origem das configs. Só Analisar, Simular e Buscar drivers funcionam."); }
-        else if (new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) { podeAlterar = false; Aviso("Abra com dois cliques, sem Executar como administrador. O Windows pede permissão na hora certa."); }
-        if (semElevar && args.Contains("--permitir")) { podeAlterar = true; C<TextBlock>("Aviso").Visibility = Visibility.Collapsed; }
+        if (string.Equals(Environment.GetEnvironmentVariable("COMPUTERNAME"), "MARINETE", StringComparison.OrdinalIgnoreCase)) { podeAlterar = false; Aviso("Somente leitura neste PC: é a origem das configs. Só Analisar, Simular, Buscar drivers e MTA funcionam."); }
+        else if (new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) { podeAlterar = false; podeAlterarMta = false; Aviso("Abra com dois cliques, sem Executar como administrador. O Windows pede permissão na hora certa."); }
+        if (semElevar && args.Contains("--permitir")) { podeAlterar = true; podeAlterarMta = true; C<TextBlock>("Aviso").Visibility = Visibility.Collapsed; }
 
         string foto = Arg(args, "--foto"), demo = Arg(args, "--demo"), aba = Arg(args, "--aba"), autoSim = Arg(args, "--auto-simular"), busca = Arg(args, "--busca");
         arqFotoFim = Arg(args, "--foto-fim");
@@ -276,6 +281,7 @@ class Aplicativo {
             if (args.Contains("--auto")) w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(IniciarInstalacao));
             if (args.Contains("--auto-analisar")) w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(IniciarAnalise));
             if (args.Contains("--auto-drivers")) w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(IniciarBuscaDrivers));
+            if (args.Contains("--auto-mta")) w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(IniciarAnaliseMta));
             if (autoSim != null) { nivelEscolhido = autoSim; w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate { RodarOtimizar(true, false); })); }
             if (args.Contains("--auto-cancelar")) { var t0 = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(3000) }; t0.Tick += delegate { t0.Stop(); PedirCancelamento(); }; t0.Start(); }
             if (foto != null) { var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2600) }; t.Tick += delegate { t.Stop(); Fotografar(foto); emAndamento = false; app.Shutdown(); }; t.Start(); }
@@ -322,7 +328,8 @@ class Aplicativo {
         { "Analisar", new[] { "03", "Segurança e saúde do PC", "Análise do sistema.", "Só lê. Nada muda sem você marcar." } },
         { "Otimizar", new[] { "04", "Quatro níveis reversíveis", "Menos serviços e apps.", "Defender e Firewall ficam ligados." } },
         { "Ferramentas", new[] { "05", "Rotinas de manutenção", "Manutenção do Windows.", "Uma rotina por vez." } },
-        { "Terminal", new[] { "06", "Saída real", "Nada em execução.", "Os comandos aparecem aqui." } },
+        { "MTA", new[] { "06", "Multi Theft Auto", "Anti-crash MTA.", "Sem mods nem promessa de FPS." } },
+        { "Terminal", new[] { "07", "Saída real", "Nada em execução.", "Os comandos aparecem aqui." } },
     };
 
     void Titulo(string a, string b) { C<TextoTrack>("Titulo1").Texto = a; C<TextoTrack>("Titulo2").Texto = b; }
@@ -337,7 +344,7 @@ class Aplicativo {
         if (a == "Terminal" && (emAndamento || terminado)) Titulo(tituloExec1, tituloExec2);
         else Titulo(s[2], s[3]);
         if (a != "Terminal" && !emAndamento) { planeta.Progresso = -1; C<Border>("BarraProgresso").Width = 0; }
-        foreach (var v in new[] { "Instalar", "Drivers", "Analisar", "Otimizar", "Ferramentas", "Terminal" }) ((FrameworkElement)w.FindName("Visao" + v)).Visibility = v == a ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var v in new[] { "Instalar", "Drivers", "Analisar", "Otimizar", "Ferramentas", "MTA", "Terminal" }) ((FrameworkElement)w.FindName("Visao" + v)).Visibility = v == a ? Visibility.Visible : Visibility.Collapsed;
         var cont = C<Grid>("Conteudo");
         cont.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0.2, 1, new Duration(TimeSpan.FromMilliseconds(180))) { EasingFunction = new ExponentialEase { EasingMode = EasingMode.EaseOut } });
         AtualizarPainel();
@@ -366,6 +373,14 @@ class Aplicativo {
             b.IsEnabled = !corrigir || n > 0;
         }
         else if (abaAtual == "Otimizar") { b.Content = "Aplicar " + NomeNivel(nivelEscolhido); b.IsEnabled = podeAlterar; }
+        else if (abaAtual == "MTA") {
+            int n = correcoesMta.Count(a => a.Caixa.IsChecked == true);
+            b.Content = !mtaAnalisado ? "Analisar MTA" : correcoesMta.Count == 0 ? "Nada a aplicar" : n == 0 ? "Marque um item" : "Aplicar " + n + (n == 1 ? " item" : " itens");
+            b.IsEnabled = !mtaAnalisado || (n > 0 && podeAlterarMta);
+            C<Button>("AnalisarMta").Visibility = mtaAnalisado ? Visibility.Visible : Visibility.Collapsed;
+            C<Button>("ReverterMta").Visibility = BackupMtaExiste() ? Visibility.Visible : Visibility.Collapsed;
+            C<Button>("ReverterMta").IsEnabled = podeAlterarMta;
+        }
         else b.Visibility = Visibility.Collapsed;
     }
 
@@ -385,6 +400,7 @@ class Aplicativo {
         else if (abaAtual == "Drivers") { if (podeAlterar && driversMarcaveis.Count > 0) InstalarDriversMarcados(); else IniciarBuscaDrivers(); }
         else if (abaAtual == "Analisar") { if (podeAlterar && achados.Count > 0) CorrigirMarcados(); else IniciarAnalise(); }
         else if (abaAtual == "Otimizar") RodarOtimizar(false, false);
+        else if (abaAtual == "MTA") { if (mtaAnalisado && correcoesMta.Count > 0) AplicarCorrecoesMta(); else IniciarAnaliseMta(); }
     }
 
     // ---------- animacao e telemetria ----------
@@ -890,6 +906,76 @@ class Aplicativo {
         w.Loaded += delegate { b.IsEnabled = podeAlterar; };
     }
 
+    // ---------- anti-crash MTA ----------
+
+    bool BackupMtaExiste() { return File.Exists(Path.Combine(dados, "mta-antes.json")); }
+
+    void IniciarAnaliseMta() {
+        if (emAndamento) return;
+        abaDepois = "MTA"; tipoExec = "mta"; total = 5;
+        Executar("mta-analisar.ps1", "", false, "Analisando o MTA.");
+    }
+
+    void CarregarMta() {
+        var p = C<StackPanel>("PainelMta");
+        p.Children.Clear(); correcoesMta.Clear();
+        string arq = Path.Combine(dados, "mta.json");
+        if (!File.Exists(arq)) { C<TextBlock>("ResumoMta").Text = "mta.json não foi gerado."; return; }
+        var j = new JavaScriptSerializer { MaxJsonLength = int.MaxValue }.Deserialize<Dictionary<string, object>>(File.ReadAllText(arq, Encoding.UTF8));
+        mtaAnalisado = true;
+        if (!(bool)j["instalado"]) { C<TextBlock>("ResumoMta").Text = "MTA não encontrado neste PC."; return; }
+        C<TextBlock>("ResumoMta").Text = "MTA " + (string)j["versao"] + "   " + Convert.ToInt32(j["redefinicoes"]) + " redefinições de vídeo na última sessão   " + (string)j["placa"];
+        p.Children.Add(Secao("Último crash"));
+        var crash = j["crash"] as Dictionary<string, object>;
+        if (crash == null) p.Children.Add(Fila(new TextBlock { Text = "Nenhum crash registrado neste PC.", Foreground = Mudo, FontSize = 13 }));
+        else {
+            var st = new StackPanel();
+            st.Children.Add(new TextBlock { Text = (string)crash["mensagem"], Foreground = Tinta, FontSize = 13, TextWrapping = TextWrapping.Wrap });
+            st.Children.Add(Dado("Offset " + (string)crash["offset"] + "   código " + (string)crash["codigo"] + "   " + (string)crash["modulo"] + "   " + (string)crash["hora"] + "   é uma pista, não uma certeza"));
+            p.Children.Add(Fila(st));
+        }
+        var avisos = (ArrayList)j["avisos"];
+        if (avisos.Count > 0) p.Children.Add(Secao("Avisos"));
+        foreach (string a in avisos) p.Children.Add(Fila(new TextBlock { Text = a, Foreground = Suave, FontSize = 13, TextWrapping = TextWrapping.Wrap }));
+        var correcoes = (ArrayList)j["correcoes"];
+        p.Children.Add(Secao("Correções"));
+        if (correcoes.Count == 0) p.Children.Add(Fila(new TextBlock { Text = "Nada a corrigir.", Foreground = Mudo, FontSize = 13 }));
+        foreach (Dictionary<string, object> c in correcoes) {
+            var txt = new StackPanel();
+            txt.Children.Add(new TextBlock { Text = (string)c["Rotulo"], FontSize = 13, Foreground = Tinta });
+            txt.Children.Add(Dado((string)c["Detalhe"]));
+            var cx = new CheckBox { IsChecked = (bool)c["Marcada"], Content = txt };
+            cx.Click += delegate { AtualizarPainel(); };
+            correcoesMta.Add(new Marcavel { Id = (string)c["Id"], Caixa = cx });
+            p.Children.Add(Fila(cx));
+        }
+        p.Children.Add(Fila(Dado("Muitos crashes vêm de modelos e scripts do próprio servidor. Nenhum ajuste aqui evita esses, e nenhum altera arquivos do jogo.")));
+    }
+
+    void AplicarCorrecoesMta() {
+        var ids = correcoesMta.Where(a => a.Caixa.IsChecked == true).Select(a => a.Id).ToList();
+        if (ids.Count == 0 || emAndamento || !podeAlterarMta) return;
+        string texto = "Feche o MTA antes. O estado atual fica salvo para reverter.";
+        if (ids.Contains("componentes")) texto += " Componentes instalados não são removidos ao reverter.";
+        Confirmar("Aplicar " + ids.Count + (ids.Count == 1 ? " item?" : " itens?"), texto, "Aplicar", delegate {
+            // O diagnostico deixa de valer depois de aplicar: a proxima acao e analisar de novo.
+            C<StackPanel>("PainelMta").Children.Clear(); correcoesMta.Clear(); mtaAnalisado = false;
+            C<TextBlock>("ResumoMta").Text = "Analise de novo para conferir o resultado.";
+            abaDepois = "MTA"; tipoExec = "ferramenta"; total = 0;
+            Executar("mta-aplicar.ps1", "-Itens " + string.Join(",", ids), !semElevar, "Aplicando no MTA.");
+        });
+    }
+
+    void ReverterCorrecoesMta() {
+        if (emAndamento || !podeAlterarMta) return;
+        Confirmar("Reverter?", "Feche o MTA antes. Configurações, placa de vídeo e mods voltam ao estado salvo. Componentes instalados não são removidos.", "Reverter", delegate {
+            C<StackPanel>("PainelMta").Children.Clear(); correcoesMta.Clear(); mtaAnalisado = false;
+            C<TextBlock>("ResumoMta").Text = "Analise de novo para conferir o resultado.";
+            abaDepois = "MTA"; tipoExec = "ferramenta"; total = 0;
+            Executar("mta-aplicar.ps1", "-Reverter", !semElevar, "Revertendo no MTA.");
+        });
+    }
+
     // ---------- paleta Ctrl K ----------
 
     void MontarPaleta() {
@@ -916,7 +1002,7 @@ class Aplicativo {
         var saida = C<StackPanel>("ResultadosPaleta");
         saida.Children.Clear(); acoesPaleta.Clear();
         var op = new List<KeyValuePair<string, Action>>();
-        foreach (var a in new[] { "Instalar", "Drivers", "Analisar", "Otimizar", "Ferramentas", "Terminal" }) { var n = a; op.Add(new KeyValuePair<string, Action>("ir " + a.ToLower(), delegate { C<RadioButton>("Aba" + n).IsChecked = true; })); }
+        foreach (var a in new[] { "Instalar", "Drivers", "Analisar", "Otimizar", "Ferramentas", "MTA", "Terminal" }) { var n = a; op.Add(new KeyValuePair<string, Action>("ir " + a.ToLower(), delegate { C<RadioButton>("Aba" + n).IsChecked = true; })); }
         foreach (var a in new[] { "Completo", "Básico", "Gamer", "Dev", "IA" }) { var n = a; op.Add(new KeyValuePair<string, Action>("perfil " + a.ToLower(), delegate { C<RadioButton>("AbaInstalar").IsChecked = true; AplicarPerfil(n); })); }
         if (q.Length > 0) foreach (var g in grupos) foreach (var i in g.Itens) { var it = i; op.Add(new KeyValuePair<string, Action>((it.Caixa.IsChecked == true ? "desmarcar " : "marcar ") + it.Rotulo, delegate { C<RadioButton>("AbaInstalar").IsChecked = true; it.Caixa.IsChecked = it.Caixa.IsChecked != true; })); }
         var res = op.Where(o => q.Length == 0 || o.Key.ToLower().Contains(q)).Take(q.Length == 0 ? 3 : 8).ToList();
@@ -1142,6 +1228,7 @@ class Aplicativo {
         try { if (File.Exists(flagCancelar)) File.Delete(flagCancelar); } catch { }
         if (tipoExec == "analisar") CarregarAchados();
         if (tipoExec == "drivers") CarregarDrivers();
+        if (tipoExec == "mta") CarregarMta();
         AtualizarPainel();
         if (arqFotoFim != null) {
             var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
@@ -1149,9 +1236,10 @@ class Aplicativo {
                 t.Stop();
                 if (tipoExec == "analisar") { terminado = false; C<RadioButton>("AbaAnalisar").IsChecked = true; }
                 if (tipoExec == "drivers") { terminado = false; C<RadioButton>("AbaDrivers").IsChecked = true; }
+                if (tipoExec == "mta") { terminado = false; C<RadioButton>("AbaMTA").IsChecked = true; }
                 w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate {
                     Fotografar(arqFotoFim);
-                    File.WriteAllText(arqFotoFim + ".txt", "falhou=" + falhou + " manual=" + manual + " linhas=" + linhas.Count + " feitas=" + feitas + " peso=" + concluidas + "/" + total + " term=" + C<RichTextBox>("Terminal").Document.Blocks.Count + " cancelado=" + cancelando + " codigo=" + codigo + " naoRodou=" + naoRodou);
+                    File.WriteAllText(arqFotoFim + ".txt", "falhou=" + falhou + " manual=" + manual + " linhas=" + linhas.Count + " feitas=" + feitas + " peso=" + concluidas + "/" + total + " term=" + C<RichTextBox>("Terminal").Document.Blocks.Count + " cancelado=" + cancelando + " codigo=" + codigo + " naoRodou=" + naoRodou + " mta=" + mtaAnalisado + "/" + correcoesMta.Count(a => a.Caixa.IsChecked == true) + "/" + podeAlterarMta + "/" + podeAlterar + " reverterMta=" + (C<Button>("ReverterMta").Visibility == Visibility.Visible));
                     Application.Current.Shutdown();
                 }));
             };

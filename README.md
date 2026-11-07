@@ -73,6 +73,13 @@ Atualizar todos os programas; **limpar disco** (temporários, Lixeira, cache do 
 
 > A limpeza age só em arquivos descartáveis e no seu cache. Não mexe no registro de execução do sistema (Amcache, Shimcache, BAM, USN Journal, Event Log) — isso não é limpeza de disco e serve só para esconder o que rodou na máquina.
 
+### Anti-crash MTA
+Para quem joga **Multi Theft Auto: San Andreas**. O diagnóstico só lê: mostra o último crash registrado com o `Offset` explicado, quantas vezes o vídeo foi redefinido na última sessão, a placa em uso, mods na pasta do GTA, sobreposições abertas e componentes que faltam.
+
+Depois você marca o que aplicar: modo sem borda, placa dedicada, tirar mods da pasta do GTA, componentes, perfil leve de gráficos, modo pouca memória, prioridade acima do normal e refazer o `gta_sa.set`. Com o MTA fechado, o estado anterior fica salvo e há botão de reverter.
+
+> Muitos crashes vêm de modelos e scripts do próprio servidor, e nenhum ajuste no seu PC evita esses. A aba não altera arquivos do jogo, não instala patches nem unlockers e não promete FPS. Funciona também no PC de origem das configs.
+
 ### Terminal e Ctrl K
 
 <img src="docs/terminal.png" alt="Terminal embutido durante uma instalação, com dados de demonstração" width="900">
@@ -151,7 +158,7 @@ INSTALADOR/     O que o .exe usa em execução
 | | |
 |---|---|
 | **Testado de ponta a ponta** | Compilação, análise real, busca real de drivers, simulação da Altíssima, restauração das configs em pasta temporária, travas contra rodar no PC de origem e todo o fluxo da interface, incluindo o cancelamento e o escalonador da instalação simultânea, com instalador de teste |
-| **Falta testar em máquina real** | Instalação real dos programas, instalação de drivers, aplicar e reverter níveis, instalação simultânea com instaladores reais, correções da análise, ferramentas, reinstalação de apps e cancelamento em processo elevado |
+| **Falta testar em máquina real** | Instalação real dos programas, instalação de drivers, aplicar e reverter níveis, instalação simultânea com instaladores reais, correções da análise, ferramentas, reinstalação de apps, cancelamento em processo elevado, Preparar formatação com `netsh` e `pnputil` reais e aplicar as correções do Anti-crash MTA |
 
 O ganho de desempenho dos níveis não foi medido. Na Altíssima, a maior parte dos serviços da lista já fica parada até ser chamada, então espere pouco ganho e confira na simulação o que muda no seu PC.
 

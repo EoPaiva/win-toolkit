@@ -104,6 +104,27 @@ function Invoke-Etapa([string]$Nome, [scriptblock]$Acao) {
     }
 }
 
+# Passo de uma rotina que nao fica registrada como feita: rodar de novo refaz tudo.
+function Passo([string]$nome, [scriptblock]$a) {
+    if (Test-Cancelado) { Write-Log "[cancelado] $nome"; return }
+    Write-Log "[....] $nome"
+    try {
+        & $a
+        Write-Log "[ ok ] $nome"
+    } catch { Write-Log "[FALHOU] $nome - $($_.Exception.Message)" Red }
+}
+
+# Redes salvas por "Preparar formatacao". As senhas estao em texto puro: cada arquivo importado e apagado na hora.
+function Import-RedesWifi {
+    $arqs = @(Get-ChildItem -LiteralPath (Join-Path $script:Raiz 'wifi') -Filter '*.xml' -File -ErrorAction SilentlyContinue)
+    $falhas = 0
+    foreach ($a in $arqs) {
+        & netsh.exe wlan add profile "filename=$($a.FullName)" user=all 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { Remove-Item -LiteralPath $a.FullName -Force } else { $falhas++ }
+    }
+    if ($falhas) { "FALHA: $falhas de $($arqs.Count) redes nao importadas; os arquivos continuam em wifi\" } else { 'OK' }
+}
+
 # Roda um comando com limite de tempo, para um instalador travado nao segurar o resto.
 function Invoke-ComTempo([string]$Exe, [string]$Argumentos, [int]$Minutos, [string]$LogNome) {
     $seguro = $LogNome -replace '[^\w.+-]', '_'

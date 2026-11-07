@@ -13,4 +13,7 @@ INSTALADOR/drivers/*
 !INSTALADOR/drivers/.gitkeep
 INSTALADOR/pc-alvo.txt
 INSTALADOR/programas-do-pc.txt
+INSTALADOR/loja-do-pc.txt
+INSTALADOR/drivers-completos/
+INSTALADOR/wifi/
 INSTALADOR/upaiva.dev.exe

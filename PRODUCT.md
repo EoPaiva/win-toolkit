@@ -25,7 +25,7 @@ Mateus Paiva, full-stack developer and Head of AI, on a freshly formatted PC. He
 - No level disables Defender, Firewall, UAC, SmartScreen, Windows Update, TPM or Secure Boot.
 - Performance gains are not promised. VBS is the only tweak with independent measurements, and it stays a separate, unchecked option.
 - Status, commands and telemetry on screen are real. Decoration must never read as status.
-- Only skills and configurations travel. No projects, logs, history or logins.
+- Only skills and configurations travel. No projects, logs, history or logins. One exception, chosen by the owner: "Preparar formatação" can export Wi-Fi passwords in plain text, unchecked by default, with a warning, and the install deletes those files as it imports them. They never enter the repository or a release.
 - Install, apply and tools are blocked on the source PC (MARINETE); scan, dry run and driver search stay available.
 
 ## Voice

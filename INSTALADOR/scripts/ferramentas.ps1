@@ -3,14 +3,6 @@ param([string]$Acao, [string[]]$Ids)
 . "$PSScriptRoot\comum.ps1"
 if ($env:COMPUTERNAME -eq 'MARINETE') { Write-Log 'policy.deny host=MARINETE reason=source-of-configs: nada foi alterado' Red; exit 1 }
 
-function Passo([string]$nome, [scriptblock]$a) {
-    if (Test-Cancelado) { Write-Log "[cancelado] $nome"; return }
-    Write-Log "[....] $nome"
-    try {
-        & $a
-        Write-Log "[ ok ] $nome"
-    } catch { Write-Log "[FALHOU] $nome - $($_.Exception.Message)" Red }
-}
 function Tamanho($p) { (Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum }
 function Exec([string]$exe, [string]$a, [int]$min) {
     $c = Invoke-ComTempo $exe $a $min ($exe -replace '\W', '_')

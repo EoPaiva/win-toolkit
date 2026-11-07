@@ -25,11 +25,18 @@ Initialize-Winget
 $fila = @(foreach ($p in $programas.usuario) { New-ItemPrograma "Programa $(if ($p.nome) { $p.nome } else { $p.id })" $p })
 
 # Programas anotados no PC antes de formatar: so os nomes, instalados na versao mais nova.
+$conhecidos = @($programas.maquina | ForEach-Object { $_.id }) + @($programas.usuario | ForEach-Object { $_.id })
 $listaPc = Join-Path $script:Raiz 'programas-do-pc.txt'
 if (Test-Path -LiteralPath $listaPc) {
-    $conhecidos = @($programas.maquina | ForEach-Object { $_.id }) + @($programas.usuario | ForEach-Object { $_.id })
     Get-Content -LiteralPath $listaPc | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') -and $conhecidos -notcontains $_ } | ForEach-Object {
         $fila += New-ItemPrograma "Programa $_" ([pscustomobject]@{ id = $_ })
+    }
+}
+# Apps da Loja, do mesmo jeito. Depois do # vem o nome, que so serve para a tela.
+$listaLoja = Join-Path $script:Raiz 'loja-do-pc.txt'
+if (Test-Path -LiteralPath $listaLoja) {
+    Get-Content -LiteralPath $listaLoja -Encoding UTF8 | ForEach-Object { ($_ -split '#', 2)[0].Trim() } | Where-Object { $_ -and $conhecidos -notcontains $_ } | ForEach-Object {
+        $fila += New-ItemPrograma "Programa $_" ([pscustomobject]@{ id = $_; fonte = 'msstore' })
     }
 }
 Invoke-Programas $fila

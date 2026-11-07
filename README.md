@@ -67,6 +67,8 @@ Varredura **somente leitura** de segurança e saúde: Defender, Firewall, UAC, S
 Os níveis são cumulativos, somam mais de 170 ações no topo e podem ser **simulados antes de aplicar**. A Altíssima usa uma lista fechada de serviços do Windows, com detecção de Bluetooth e rede móvel, e uma lista de intocáveis que aborta o plano antes de qualquer alteração se houver conflito. Serviços de terceiros, como GPU, Vanguard, Steam e VPN, nunca são tocados.
 
 ### Ferramentas
+**Preparar formatação:** antes de formatar, salva ao lado do app os dados do PC, a lista de programas e de apps da Loja, os drivers e, se você marcar, as redes Wi-Fi. A instalação usa tudo isso depois, e no fim a rotina mostra o que **não** foi copiado. Os drivers completos ficam só guardados, sem instalar sozinhos.
+
 Atualizar todos os programas; **limpar disco** (temporários, Lixeira, cache do Windows Update, componentes antigos via DISM, logs, miniaturas e cache dos navegadores, com confirmação e o espaço liberado à vista); reparar o sistema com DISM e SFC; resetar a rede; criar ponto de restauração; e **reinstalar pela Microsoft Store os apps removidos**.
 
 > A limpeza age só em arquivos descartáveis e no seu cache. Não mexe no registro de execução do sistema (Amcache, Shimcache, BAM, USN Journal, Event Log) — isso não é limpeza de disco e serve só para esconder o que rodou na máquina.
@@ -88,7 +90,7 @@ Confiança vale mais que um número bonito na tela.
 - **Nenhum nível desliga** Defender, Firewall, UAC, SmartScreen, Windows Update, TPM ou Secure Boot.
 - **Não promete FPS.** Desligar VBS/HVCI é o único ajuste com ganho medido por testes independentes, e por isso fica à parte, desmarcado e com aviso.
 - **Não usa banco de drivers de terceiros** nem Windows modificado.
-- **Não leva logins nem histórico.** Tokens, `.env`, conversas, logs e projetos ficam fora do pacote, e o gerador de configurações para se encontrar algo com formato de segredo.
+- **Não leva logins nem histórico.** Tokens, `.env`, conversas, logs e projetos ficam fora do pacote, e o gerador de configurações para se encontrar algo com formato de segredo. A única exceção é o Wi-Fi em Preparar formatação: vem desmarcado, avisa que as senhas ficam em texto puro na pasta do app, e a instalação apaga os arquivos ao importar. Eles nunca entram no repositório nem na release.
 - **Decoração não finge ser status.** Comandos e telemetria de CPU, RAM e rede são reais, e a órbita só acende com progresso real.
 
 ## Stack

@@ -441,12 +441,14 @@ class Aplicativo {
     void CarregarLista() {
         foreach (var n in new[] { "Dependências (AIO)", "Navegador e utilitários", "Desenvolvimento", "Inteligência artificial", "Comunicação e mídia", "Jogos" }) ObterGrupo(n, false);
         var json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue }.Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(raiz, "programas.json"), Encoding.UTF8));
+        var idsConhecidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var lista in new[] { "maquina", "usuario" }) {
             foreach (Dictionary<string, object> p in (ArrayList)json[lista]) {
                 string id = (string)p["id"];
                 string etapa = "Programa " + (p.ContainsKey("nome") ? (string)p["nome"] : id);
                 string rot = p.ContainsKey("rotulo") ? (string)p["rotulo"] : id;
                 rotulos[etapa] = rot;
+                idsConhecidos.Add(id);
                 // O peso aproxima a duracao: Build Tools nao vale o mesmo que 7-Zip na barra.
                 int peso = p.ContainsKey("minutos") ? Math.Max(1, Convert.ToInt32(p["minutos"]) / 5) : 1;
                 pesos[etapa] = peso;
@@ -461,10 +463,23 @@ class Aplicativo {
                 if (ja.Add(e)) Adicionar("Encontrados no PC antes de formatar", l, 1, e);
             }
         }
+        string listaLoja = Path.Combine(raiz, "loja-do-pc.txt");
+        if (File.Exists(listaLoja)) {
+            foreach (var l in File.ReadAllLines(listaLoja, Encoding.UTF8)) {
+                var partes = l.Split(new[] { '#' }, 2);
+                string id = partes[0].Trim();
+                if (id.Length == 0 || idsConhecidos.Contains(id)) continue;
+                string nome = partes.Length > 1 && partes[1].Trim().Length > 0 ? partes[1].Trim() : id;
+                rotulos["Programa " + id] = nome;
+                Adicionar("Encontrados no PC antes de formatar", nome, 1, "Programa " + id);
+            }
+        }
         Adicionar("Skills e configurações", "Skills e configs Claude e Codex", 8 + Tam(json, "marketplaces") + Tam(json, "plugins"), "Restaurar *", "Git com caminhos longos", "Marketplace *", "Plugin *", "Serena*", "Headroom", "Conferir hooks*");
         Adicionar("Skills e configurações", "npm, pip e Python via uv", Tam(json, "npm") + Tam(json, "pip") + Tam(json, "uv_python"), "npm *", "pip *", "Python * via uv");
         Adicionar("Skills e configurações", "Extensões do VS Code", Tam(json, "vscode"), "VS Code *");
         Adicionar("Sistema", "Driver de rede", 1, "Drivers de rede");
+        string pastaWifi = Path.Combine(raiz, "wifi");
+        if (Directory.Exists(pastaWifi) && Directory.GetFiles(pastaWifi, "*.xml").Length > 0) Adicionar("Sistema", "Redes Wi-Fi", 1, "Redes Wi-Fi");
         Adicionar("Sistema", ".NET Framework 3.5", 1, "NET Framework 3.5");
         Adicionar("Sistema", "Limpeza do Windows", 1, "Limpeza do Windows");
         if (json.ContainsKey("catalogo")) {
@@ -612,7 +627,7 @@ class Aplicativo {
         Executar("instalar.ps1", "", false, "Instalando.");
         // Fila visivel desde o inicio: o que falta aparece antes de comecar.
         foreach (var i in todos.Where(x => x.Caixa.IsChecked == true)) {
-            foreach (var pd in i.Padroes.Where(x => !x.Contains("*"))) { if (pd.StartsWith("Programa ") || pd.StartsWith("Drivers") || pd.StartsWith("NET") || pd.StartsWith("Limpeza")) Marcar(pd, "..", Fraco, ""); }
+            foreach (var pd in i.Padroes.Where(x => !x.Contains("*"))) { if (pd.StartsWith("Programa ") || pd.StartsWith("Drivers") || pd.StartsWith("Redes") || pd.StartsWith("NET") || pd.StartsWith("Limpeza")) Marcar(pd, "..", Fraco, ""); }
             if (i.Catalogo) Marcar("Programa " + i.Id, "..", Fraco, "");
         }
     }
@@ -801,12 +816,54 @@ class Aplicativo {
 
     void MontarFerramentas() {
         var p = C<StackPanel>("Ferramentas");
+        FerramentaFormatar(p);
         Ferramenta(p, "atualizar", "Atualizar todos os programas", "winget upgrade --all --include-unknown");
         Ferramenta(p, "limpar", "Limpar disco", "Temporários, Lixeira, cache do Windows Update, componentes antigos (DISM), logs, miniaturas e cache dos navegadores. Mostra o espaço liberado.");
         Ferramenta(p, "reparar", "Reparar sistema", "DISM /RestoreHealth, sfc /scannow. Pode levar 30 minutos.");
         Ferramenta(p, "rede", "Resetar rede", "ipconfig /flushdns, netsh winsock reset, netsh int ip reset. Pede reinício.");
         Ferramenta(p, "restauracao", "Criar ponto de restauração", "Enable-ComputerRestore, Checkpoint-Computer");
         Ferramenta(p, "reinstalar-apps", "Reinstalar apps removidos", "winget install --source msstore, só os que faltam. Dicas, Paciência e Mapas não estão na loja.");
+    }
+
+    // As senhas do Wi-Fi iriam para a nuvem junto com a pasta.
+    static bool PastaSincronizada(string pasta) {
+        return new[] { "OneDrive", "OneDriveConsumer", "OneDriveCommercial" }.Select(Environment.GetEnvironmentVariable).Any(v => !string.IsNullOrEmpty(v) && pasta.StartsWith(v, StringComparison.OrdinalIgnoreCase));
+    }
+
+    void FerramentaFormatar(StackPanel p) {
+        var g = new DockPanel();
+        var b = new Button { Style = (Style)w.FindResource("BotaoPilula"), Content = "Rodar", VerticalAlignment = VerticalAlignment.Center };
+        DockPanel.SetDock(b, Dock.Right);
+        g.Children.Add(b);
+        var t = new StackPanel();
+        t.Children.Add(new TextoTrack { Texto = "Preparar formatação", Tamanho = 21, Track = -0.5, Familia = Fonte("FDisplay"), Cor = Tinta });
+        t.Children.Add(Dado("Salva ao lado do app o que a instalação usa depois. Não apaga nada deste PC nem copia arquivos pessoais."));
+        var opcoes = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+        var caixas = new List<Marcavel>();
+        // O Wi-Fi vem desmarcado: grava senhas em texto puro e precisa de uma decisão a cada uso.
+        foreach (var o in new[] { new[] { "dados", "Dados do PC" }, new[] { "programas", "Programas" }, new[] { "rede", "Driver de rede" }, new[] { "loja", "Apps da Loja" }, new[] { "completos", "Todos os drivers" }, new[] { "wifi", "Wi-Fi com senhas" } }) {
+            var cx = new CheckBox { Content = o[1], IsChecked = o[0] != "wifi", Margin = new Thickness(0, 0, 18, 4) };
+            caixas.Add(new Marcavel { Id = o[0], Caixa = cx });
+            opcoes.Children.Add(cx);
+        }
+        t.Children.Add(opcoes);
+        g.Children.Add(t);
+        b.Click += delegate {
+            if (emAndamento || !podeAlterar) return;
+            var itens = caixas.Where(c => c.Caixa.IsChecked == true).Select(c => c.Id).ToList();
+            if (itens.Count == 0) { Aviso("Marque ao menos um item para preparar a formatação."); return; }
+            string texto = "Nada é apagado deste PC. Os arquivos ficam em " + raiz + ".";
+            if (itens.Contains("wifi")) {
+                texto += " As senhas do Wi-Fi ficam em texto puro: guarde a pasta com cuidado. A instalação apaga os arquivos ao importar as redes.";
+                if (PastaSincronizada(raiz)) texto += " Atenção: esta pasta está no OneDrive e as senhas iriam para a nuvem.";
+            }
+            Confirmar("Preparar formatação?", texto, "Preparar", delegate {
+                abaDepois = "Ferramentas"; tipoExec = "ferramenta"; total = 0;
+                Executar("antes-de-formatar.ps1", "-Itens " + string.Join(",", itens), true, "Preparar formatação.");
+            });
+        };
+        p.Children.Add(Fila(g));
+        w.Loaded += delegate { b.IsEnabled = podeAlterar; };
     }
 
     void Ferramenta(StackPanel p, string acao, string titulo, string det) {

@@ -1,5 +1,5 @@
 ﻿# Drivers: busca no catalogo oficial do Windows Update e sugere a ferramenta do fabricante. A busca so le.
-param([ValidateSet('buscar', 'instalar')][string]$Acao = 'buscar', [string]$Ids = '')
+param([ValidateSet('buscar', 'instalar', 'voltar', 'apagar')][string]$Acao = 'buscar', [string]$Ids = '')
 . "$PSScriptRoot\comum.ps1"
 . "$PSScriptRoot\drivers-backup.ps1"
 $arq = Join-Path $script:Dados 'drivers.json'
@@ -13,6 +13,14 @@ function Abrir-Busca {
     return @{ sessao = $sessao; busca = $b }
 }
 $Consulta = "IsInstalled=0 and Type='Driver' and IsHidden=0"
+$pastaBackups = Join-Path $script:Dados 'drivers-backup'
+
+function Add-PontoRestauracao {
+    Write-Log '[....] Checkpoint-Computer -RestorePointType DEVICE_DRIVER_INSTALL'
+    try { Enable-ComputerRestore -Drive "$env:SystemDrive\" -ErrorAction Stop; Checkpoint-Computer -Description 'upaiva.dev drivers' -RestorePointType DEVICE_DRIVER_INSTALL -ErrorAction Stop }
+    catch { Write-Log "  | restore-point skipped: $($_.Exception.Message)" }
+    Write-Log '[ ok ] Checkpoint-Computer -RestorePointType DEVICE_DRIVER_INSTALL'
+}
 
 if ($Acao -eq 'buscar') {
     Write-Log '@total 5'
@@ -24,6 +32,10 @@ if ($Acao -eq 'buscar') {
     $limite = (Get-Date).AddYears(-3)
     $antigos = @($todos | Where-Object { $_.DriverDate -and $_.DriverDate -lt $limite } | Sort-Object DriverDate | Select-Object -Unique DeviceName, DriverVersion, DriverDate, DriverProviderName)
     $gpu = @(Get-CimInstance Win32_VideoController | ForEach-Object { [pscustomobject]@{ nome = $_.Name; versao = $_.DriverVersion; data = if ($_.DriverDate) { $_.DriverDate.ToString('yyyy-MM-dd') } else { '' } } })
+    # Uma falha aqui so tira o "conectado" e os backups; a busca continua.
+    $dispositivos = @(); $erroDisp = ''
+    try { $dispositivos = @(Get-DispositivosPnp) } catch { $erroDisp = $_.Exception.Message; Write-Log "  | devices.error $erroDisp" }
+    Write-Log "  | devices.present=$($dispositivos.Count)"
     Write-Log "  | devices.thirdparty=$($todos.Count) older.than.3y=$($antigos.Count) gpu=$($gpu.Count) vendor=$($sistema.Manufacturer) model=$($sistema.Model)"
     Write-Log '[ ok ] enum Win32_PnPSignedDriver'
 
@@ -39,8 +51,10 @@ if ($Acao -eq 'buscar') {
         $r = $x.busca.Search($Consulta)
         foreach ($u in $r.Updates) {
             $mb = [Math]::Round($u.MaxDownloadSize / 1MB, 1)
-            $lista += [pscustomobject]@{ id = $u.Identity.UpdateID; titulo = $u.Title; classe = "$($u.DriverClass)"; fabricante = "$($u.DriverManufacturer)"; data = if ($u.DriverVerDate) { ([datetime]$u.DriverVerDate).ToString('yyyy-MM-dd') } else { '' }; mb = $mb }
-            Write-Log "  | update class=$($u.DriverClass) date=$($lista[-1].data) size=${mb}MB :: $($u.Title)"
+            # Sem leitura de dispositivos, nao da para afirmar que falta: conta como conectado.
+            $conectado = if ($erroDisp) { $true } else { [bool]@(Find-DispositivosAlvo "$($u.DriverHardwareID)" $dispositivos).Count }
+            $lista += [pscustomobject]@{ id = $u.Identity.UpdateID; titulo = $u.Title; classe = "$($u.DriverClass)"; fabricante = "$($u.DriverManufacturer)"; data = if ($u.DriverVerDate) { ([datetime]$u.DriverVerDate).ToString('yyyy-MM-dd') } else { '' }; mb = $mb; conectado = $conectado }
+            Write-Log "  | update connected=$conectado class=$($u.DriverClass) date=$($lista[-1].data) size=${mb}MB :: $($u.Title)"
         }
         Write-Log "  | ResultCode=$($r.ResultCode) updates=$($lista.Count)"
     } catch { $erroBusca = $_.Exception.Message; Write-Log "  | search.error $erroBusca" }
@@ -74,21 +88,40 @@ if ($Acao -eq 'buscar') {
     Write-Log "  | components.found=$($componentes.Count)"
     Write-Log '[ ok ] enum game components'
 
-    $saida = [ordered]@{ atualizacoes = @($lista); componentes = @($componentes); erroComponentes = $erroComp; problemas = @($problemas); antigos = $antigos.Count; gpu = @($gpu); ferramentas = @($ferramentas); paginas = @($pagina); fabricante = "$($sistema.Manufacturer) $($sistema.Model)"; erro = $erroBusca }
-    Write-Utf8 $arq ($saida | ConvertTo-Json -Depth 4)
+    $backups = @(); $erroBackups = ''
+    try { $backups = @(Get-BackupsDrivers $pastaBackups $dispositivos) } catch { $erroBackups = $_.Exception.Message; Write-Log "  | backups.error $erroBackups" }
+    Write-Log "  | backups=$($backups.Count)"
+
+    $saida = [ordered]@{ atualizacoes = @($lista); componentes = @($componentes); erroComponentes = $erroComp; problemas = @($problemas); antigos = $antigos.Count; gpu = @($gpu); ferramentas = @($ferramentas); paginas = @($pagina); fabricante = "$($sistema.Manufacturer) $($sistema.Model)"; erro = $erroBusca; backups = @($backups); erroBackups = $erroBackups }
+    Write-Utf8 $arq ($saida | ConvertTo-Json -Depth 6)
     Write-Log "drivers.scan done updates=$($lista.Count) problems=$($problemas.Count) old=$($antigos.Count)" Green
     exit 0
 }
 
-# ---------- instalar: precisa de administrador ----------
+# ---------- instalar, voltar e apagar: precisam de administrador ----------
 if ($env:COMPUTERNAME -eq 'MARINETE') { Write-Log 'policy.deny host=MARINETE reason=source-of-configs: nada foi alterado' Red; exit 1 }
+
+if ($Acao -eq 'apagar') {
+    Write-Log '@total 1'
+    Write-Log "[....] Apagar backup $Ids"
+    try { Remove-BackupDriver $Ids $pastaBackups } catch { Write-Log "[FALHOU] Apagar backup $Ids - $($_.Exception.Message)" Red; exit 1 }
+    Write-Log "[ ok ] Apagar backup $Ids"
+    exit 0
+}
+
+if ($Acao -eq 'voltar') {
+    Write-Log "drivers.rollback start id=$Ids" Cyan
+    try { $res = @(Invoke-VoltarDriver $Ids $pastaBackups { Get-DispositivosPnp } { Add-PontoRestauracao }) }
+    catch { Write-Log "[FALHOU] Voltar backup $Ids - $($_.Exception.Message)" Red; exit 1 }
+    $contagem = (@('voltou', 'reiniciar', 'nao-voltou') | ForEach-Object { $k = $_; "$k=$(@($res | Where-Object { $_.resultado -eq $k }).Count)" }) -join ' '
+    Write-Log "drivers.rollback done $contagem" Green
+    if (@($res | Where-Object { $_.resultado -eq 'reiniciar' }).Count) { Write-Log 'drivers.rollback reboot.required=True: reinicie o PC' Yellow }
+    exit 0
+}
 $pedidos = @($Ids -split ',' | Where-Object { $_ })
 Write-Log "@total $($pedidos.Count + 1)"
 Write-Log "drivers.install start items=$($pedidos.Count)" Cyan
-Write-Log '[....] Checkpoint-Computer -RestorePointType DEVICE_DRIVER_INSTALL'
-try { Enable-ComputerRestore -Drive "$env:SystemDrive\" -ErrorAction Stop; Checkpoint-Computer -Description 'upaiva.dev drivers' -RestorePointType DEVICE_DRIVER_INSTALL -ErrorAction Stop }
-catch { Write-Log "  | restore-point skipped: $($_.Exception.Message)" }
-Write-Log '[ ok ] Checkpoint-Computer -RestorePointType DEVICE_DRIVER_INSTALL'
+Add-PontoRestauracao
 
 $ferr = @($pedidos | Where-Object { $_ -match '^(winget|atualizar):' })
 if ($ferr.Count) {
@@ -120,7 +153,6 @@ if ($guids.Count) {
     $x = Abrir-Busca
     $r = $x.busca.Search($Consulta)
     $script:reiniciar = $false
-    $pastaBackups = Join-Path $script:Dados 'drivers-backup'
     foreach ($g in $guids) {
         if (Test-Cancelado) { Write-Log "[cancelado] $g"; continue }
         $u = $null; foreach ($c in $r.Updates) { if ($c.Identity.UpdateID -eq $g) { $u = $c; break } }

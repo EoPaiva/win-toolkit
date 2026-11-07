@@ -19,6 +19,7 @@ Mateus Paiva, full-stack developer and Head of AI, on a freshly formatted PC. He
 - Scan security and system health in read-only mode, fixing only what is checked.
 - Apply four cumulative, reversible optimization levels, with a dry run first.
 - Run maintenance routines and show a live terminal with real commands, PIDs, exit codes and timing.
+- Diagnose what may cause crashes or slowness in MTA:SA and apply, by choice and reversibly, only settings backed by a source or by evidence from this PC. No game file is edited, and no fix to server-side crashes or FPS gain is promised.
 
 ## Product truth to preserve
 
@@ -26,7 +27,7 @@ Mateus Paiva, full-stack developer and Head of AI, on a freshly formatted PC. He
 - Performance gains are not promised. VBS is the only tweak with independent measurements, and it stays a separate, unchecked option.
 - Status, commands and telemetry on screen are real. Decoration must never read as status.
 - Only skills and configurations travel. No projects, logs, history or logins. One exception, chosen by the owner: "Preparar formatação" can export Wi-Fi passwords in plain text, unchecked by default, with a warning, and the install deletes those files as it imports them. They never enter the repository or a release.
-- Install, apply and tools are blocked on the source PC (MARINETE); scan, dry run and driver search stay available.
+- Install, apply and tools are blocked on the source PC (MARINETE); scan, dry run and driver search stay available. The MTA tab is the exception: it only changes game settings and the runtimes the game uses.
 
 ## Voice
 

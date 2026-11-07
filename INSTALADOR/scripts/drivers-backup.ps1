@@ -122,6 +122,15 @@ function Get-PlanoVolta([string]$Pasta, $Registro, $Todos) {
     $plano
 }
 
+function Get-AvisoClasse([string]$Classe) { if ($Classe -eq 'Display') { 'tela' } elseif ($Classe -eq 'Net') { 'internet' } else { '' } }
+
+# Dispositivos fora do registro que usam um pacote que o Voltar vai remover: o /uninstall tira o driver deles tambem.
+function Get-AfetadosVolta($Plano, $Todos) {
+    $infs = @($Plano | Where-Object { $_.Pode } | ForEach-Object { "$($_.Atual.Inf)".ToLowerInvariant() } | Select-Object -Unique)
+    $ids = @($Plano | ForEach-Object { "$($_.Registrado.deviceId)" })
+    @(@($Todos) | Where-Object { $_ -and $infs -contains "$($_.Inf)".ToLowerInvariant() -and $ids -notcontains "$($_.DeviceId)" })
+}
+
 # Um registro com erro aparece como ilegivel e nunca e apagado aqui.
 function Get-BackupsDrivers([string]$Pasta, $Dispositivos) {
     if (-not (Test-Path -LiteralPath $Pasta -PathType Container)) { return }
@@ -134,18 +143,19 @@ function Get-BackupsDrivers([string]$Pasta, $Dispositivos) {
         try {
             $j = Read-Utf8 $arq | ConvertFrom-Json -ErrorAction Stop
             if (-not $j -or $null -eq $j.PSObject.Properties['dispositivos']) { throw 'registro sem dispositivos' }
-            $linhas = @(Get-PlanoVolta $dir.FullName $j $Dispositivos | ForEach-Object {
+            $plano = @(Get-PlanoVolta $dir.FullName $j $Dispositivos)
+            $linhas = @($plano | ForEach-Object {
                 $classe = "$($_.Registrado.classe)"
                 [ordered]@{
                     deviceId = "$($_.Registrado.deviceId)"; nome = "$($_.Registrado.nome)"; classe = $classe
                     versaoAntes = "$($_.Registrado.versaoAntes)"; versaoAgora = "$($_.Atual.Versao)"; infAgora = "$($_.Atual.Inf)"
-                    presente = [bool]$_.Atual; podeVoltar = [bool]$_.Pode; motivo = "$($_.Motivo)"
-                    aviso = $(if ($classe -eq 'Display') { 'tela' } elseif ($classe -eq 'Net') { 'internet' } else { '' })
+                    presente = [bool]$_.Atual; podeVoltar = [bool]$_.Pode; motivo = "$($_.Motivo)"; aviso = Get-AvisoClasse $classe
                 }
             })
-            [pscustomobject][ordered]@{ id = $dir.Name; criado = "$($j.criado)"; titulo = "$($j.titulo)"; mb = $mb; legivel = $true; dispositivos = $linhas }
+            $afetados = @(Get-AfetadosVolta $plano $Dispositivos | ForEach-Object { [ordered]@{ nome = "$($_.Nome)"; classe = "$($_.Classe)"; aviso = Get-AvisoClasse "$($_.Classe)" } })
+            [pscustomobject][ordered]@{ id = $dir.Name; criado = "$($j.criado)"; titulo = "$($j.titulo)"; mb = $mb; legivel = $true; dispositivos = $linhas; afetados = $afetados }
         } catch {
-            [pscustomobject][ordered]@{ id = $dir.Name; criado = ''; titulo = 'Backup ilegível'; mb = $mb; legivel = $false; dispositivos = @() }
+            [pscustomobject][ordered]@{ id = $dir.Name; criado = ''; titulo = 'Backup ilegível'; mb = $mb; legivel = $false; dispositivos = @(); afetados = @() }
         }
     }
 }
@@ -158,6 +168,7 @@ function Invoke-VoltarDriver([string]$Id, [string]$Pasta, [scriptblock]$LerDispo
     $registro = Read-Utf8 (Join-Path $dir 'backup.json') | ConvertFrom-Json -ErrorAction Stop
     $todos = @(& $LerDispositivos)
     $plano = @(Get-PlanoVolta $dir $registro $todos)
+    $ids = @($plano | ForEach-Object { "$($_.Registrado.deviceId)" })
     Write-Log "@total $($plano.Count + 1)"
     $res = @{}
     $fim = {
@@ -176,8 +187,14 @@ function Invoke-VoltarDriver([string]$Id, [string]$Pasta, [scriptblock]$LerDispo
     foreach ($grupo in @($plano | Where-Object { $_.Pode } | Group-Object { "$($_.Atual.Inf)".ToLowerInvariant() })) {
         $itens = @($grupo.Group); $inf = $grupo.Name
         if (Test-Cancelado) { foreach ($p in $itens) { & $fim $p 'nao-voltou' 'Cancelado antes de começar.' }; continue }
-        if (-not $preparado) { $null = & $AntesDeRemover; $preparado = $true }
+        if (-not $preparado) {
+            $null = & $AntesDeRemover; $preparado = $true
+            # O ponto de restauracao pode levar um minuto: um Cancelar nesse meio ainda chega antes de remover.
+            if (Test-Cancelado) { foreach ($p in $itens) { & $fim $p 'nao-voltou' 'Cancelado antes de começar.' }; continue }
+        }
         foreach ($p in $itens) { Write-Log "[....] Voltar $($p.Registrado.nome)" }
+        $outros = @(@($todos) | Where-Object { $_ -and "$($_.Inf)".ToLowerInvariant() -eq $inf -and $ids -notcontains "$($_.DeviceId)" })
+        if ($outros.Count) { Write-Log "  | $inf também atende, e perde este driver: $(($outros | ForEach-Object { $_.Nome }) -join ', ')" }
         # Daqui em diante o pacote termina: parar no meio deixaria o dispositivo sem driver.
         $codigo = Invoke-Pnputil @('/delete-driver', $inf, '/uninstall')
         if ($codigo -notin 0, 3010) { foreach ($p in $itens) { & $fim $p 'nao-voltou' "pnputil /delete-driver $inf saiu com $codigo. Nada foi trocado." }; continue }

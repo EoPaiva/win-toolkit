@@ -747,20 +747,20 @@ class Aplicativo {
 
     // A lista deixa de valer depois de instalar, voltar ou apagar: a proxima acao e buscar de novo.
     void LimparDrivers() {
-        C<StackPanel>("ListaDrivers").Children.Clear(); driversMarcaveis.Clear(); backupsVistos = 0; voltarAtivos = 0;
+        C<StackPanel>("ListaDrivers").Children.Clear(); driversMarcaveis.Clear(); backupsVistos = 0; voltarAtivos = 0; afetadosVistos = 0;
         C<TextBlock>("ResumoDrivers").Text = "Busque de novo para conferir o resultado.";
     }
 
     // ---------- backups de drivers ----------
 
-    int backupsVistos, voltarAtivos;
+    int backupsVistos, voltarAtivos, afetadosVistos;
     static string Texto(Dictionary<string, object> d, string k) { return d.ContainsKey(k) && d[k] != null ? Convert.ToString(d[k]) : ""; }
     static bool Sim(Dictionary<string, object> d, string k) { return d.ContainsKey(k) && d[k] is bool && (bool)d[k]; }
     // O id vai para a linha de comando elevada: so o formato que drivers-backup.ps1 cria passa.
     static bool IdBackupValido(string id) { return Regex.IsMatch(id ?? "", @"^\d{8}-\d{6}-[0-9a-f]{8}\z"); }
 
     void MontarBackups(StackPanel p, ArrayList bks, string erro) {
-        backupsVistos = 0; voltarAtivos = 0;
+        backupsVistos = 0; voltarAtivos = 0; afetadosVistos = 0;
         if (erro.Length > 0) p.Children.Add(Fila(new TextBlock { Text = "A leitura dos backups de drivers falhou: " + erro, Foreground = Sinal, FontSize = 13, TextWrapping = TextWrapping.Wrap }));
         if (bks.Count == 0) return;
         p.Children.Add(Secao("Backups de drivers"));
@@ -770,11 +770,13 @@ class Aplicativo {
             if (criado.Length > 16) criado = criado.Substring(0, 16);
             bool legivel = Sim(b, "legivel");
             var lista = (b.ContainsKey("dispositivos") && b["dispositivos"] is ArrayList ? (ArrayList)b["dispositivos"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
+            var outros = (b.ContainsKey("afetados") && b["afetados"] is ArrayList ? (ArrayList)b["afetados"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
+            afetadosVistos += outros.Count;
             bool pode = legivel && IdBackupValido(id) && lista.Any(d => Sim(d, "podeVoltar"));
             var botoes = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top };
             DockPanel.SetDock(botoes, Dock.Right);
             var voltar = new Button { Style = (Style)w.FindResource("BotaoPilula"), Content = "Voltar", IsEnabled = podeAlterar && pode, Visibility = legivel ? Visibility.Visible : Visibility.Collapsed };
-            voltar.Click += delegate { VoltarDriver(id, lista); };
+            voltar.Click += delegate { VoltarDriver(id, lista, outros); };
             var apagar = new Button { Style = (Style)w.FindResource("BotaoPilula"), Content = "Apagar", IsEnabled = podeAlterar && IdBackupValido(id), Margin = new Thickness(6, 0, 0, 0) };
             apagar.Click += delegate { ApagarBackup(id, mb); };
             botoes.Children.Add(voltar); botoes.Children.Add(apagar);
@@ -796,12 +798,16 @@ class Aplicativo {
         }
     }
 
-    void VoltarDriver(string id, List<Dictionary<string, object>> lista) {
+    void VoltarDriver(string id, List<Dictionary<string, object>> lista, List<Dictionary<string, object>> outros) {
         var alvos = lista.Where(d => Sim(d, "podeVoltar")).ToList();
         if (emAndamento || !podeAlterar || !IdBackupValido(id) || alvos.Count == 0) return;
-        string texto = "Vai tentar voltar: " + string.Join(", ", alvos.Select(d => Texto(d, "nome") + ", de " + Texto(d, "versaoAgora") + " para " + Texto(d, "versaoAntes"))) + ".\nPode ser preciso reiniciar. O Windows Update pode reinstalar o driver novo.";
-        if (alvos.Any(d => Texto(d, "aviso") == "tela")) texto += "\nA tela pode piscar ou cair para o modo básico.";
-        if (alvos.Any(d => Texto(d, "aviso") == "internet")) texto += "\nA internet pode cair.";
+        string texto = "Vai tentar voltar: " + string.Join(", ", alvos.Select(d => Texto(d, "nome") + ", de " + Texto(d, "versaoAgora") + " para " + Texto(d, "versaoAntes"))) + ".";
+        // O /uninstall tira o pacote de todos os dispositivos que o usam, nao so dos que estao no backup.
+        if (outros.Count > 0) texto += "\nTambém perde o driver novo, porque usa o mesmo pacote: " + string.Join(", ", outros.Select(d => Texto(d, "nome"))) + ". O Windows procura outro driver para ele.";
+        texto += "\nPode ser preciso reiniciar. O Windows Update pode reinstalar o driver novo.";
+        var todos = alvos.Concat(outros).ToList();
+        if (todos.Any(d => Texto(d, "aviso") == "tela")) texto += "\nA tela pode piscar ou cair para o modo básico.";
+        if (todos.Any(d => Texto(d, "aviso") == "internet")) texto += "\nA internet pode cair.";
         texto += "\nUm ponto de restauração é criado antes. O backup continua guardado.";
         Confirmar(alvos.Count == 1 ? "Voltar 1 driver?" : "Voltar " + alvos.Count + " drivers?", texto, alvos.Count == 1 ? "Voltar driver" : "Voltar drivers", delegate {
             LimparDrivers();
@@ -1321,7 +1327,7 @@ class Aplicativo {
                 if (tipoExec == "mta") { terminado = false; C<RadioButton>("AbaMTA").IsChecked = true; }
                 w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate {
                     Fotografar(arqFotoFim);
-                    File.WriteAllText(arqFotoFim + ".txt", "falhou=" + falhou + " manual=" + manual + " linhas=" + linhas.Count + " feitas=" + feitas + " peso=" + concluidas + "/" + total + " term=" + C<RichTextBox>("Terminal").Document.Blocks.Count + " cancelado=" + cancelando + " codigo=" + codigo + " naoRodou=" + naoRodou + " mta=" + mtaAnalisado + "/" + correcoesMta.Count(a => a.Caixa.IsChecked == true) + "/" + podeAlterarMta + "/" + podeAlterar + " reverterMta=" + (C<Button>("ReverterMta").Visibility == Visibility.Visible) + " backups=" + backupsVistos + "/" + voltarAtivos + " drivers=" + driversMarcaveis.Count(a => a.Caixa.IsChecked == true) + "/" + driversMarcaveis.Count);
+                    File.WriteAllText(arqFotoFim + ".txt", "falhou=" + falhou + " manual=" + manual + " linhas=" + linhas.Count + " feitas=" + feitas + " peso=" + concluidas + "/" + total + " term=" + C<RichTextBox>("Terminal").Document.Blocks.Count + " cancelado=" + cancelando + " codigo=" + codigo + " naoRodou=" + naoRodou + " mta=" + mtaAnalisado + "/" + correcoesMta.Count(a => a.Caixa.IsChecked == true) + "/" + podeAlterarMta + "/" + podeAlterar + " reverterMta=" + (C<Button>("ReverterMta").Visibility == Visibility.Visible) + " backups=" + backupsVistos + "/" + voltarAtivos + " afetados=" + afetadosVistos + " drivers=" + driversMarcaveis.Count(a => a.Caixa.IsChecked == true) + "/" + driversMarcaveis.Count);
                     Application.Current.Shutdown();
                 }));
             };

@@ -684,14 +684,17 @@ class Aplicativo {
         p.Children.Add(Secao("Windows Update"));
         if (ups.Count == 0 && erro.Length == 0) p.Children.Add(Fila(new TextBlock { Text = "Nenhuma atualização de driver no catálogo agora.", Foreground = Mudo, FontSize = 13 }));
         foreach (Dictionary<string, object> u in ups) {
+            // Sem dispositivo que case com a atualizacao, nao ha driver a guardar: fica desmarcada.
+            bool conectado = !u.ContainsKey("conectado") || !(u["conectado"] is bool) || (bool)u["conectado"];
             var txt = new StackPanel();
             txt.Children.Add(new TextBlock { Text = (string)u["titulo"], FontSize = 13, Foreground = Tinta, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 900 });
-            txt.Children.Add(Dado((string)u["classe"] + "   " + (string)u["data"] + "   " + Convert.ToString(u["mb"]) + " MB"));
-            var cx = new CheckBox { IsChecked = true, Content = txt };
+            txt.Children.Add(Dado((string)u["classe"] + "   " + (string)u["data"] + "   " + Convert.ToString(u["mb"]) + " MB" + (conectado ? "" : "   dispositivo não conectado")));
+            var cx = new CheckBox { IsChecked = conectado, Content = txt };
             cx.Click += delegate { AtualizarPainel(); };
             driversMarcaveis.Add(new Marcavel { Id = (string)u["id"], Caixa = cx });
             p.Children.Add(Fila(cx));
         }
+        MontarBackups(p, j.ContainsKey("backups") && j["backups"] is ArrayList ? (ArrayList)j["backups"] : new ArrayList(), j.ContainsKey("erroBackups") ? Convert.ToString(j["erroBackups"]) : "");
         p.Children.Add(Secao("Componentes de jogos"));
         if (erroComp.Length > 0) p.Children.Add(Fila(new TextBlock { Text = "A busca de componentes falhou: " + erroComp, Foreground = Sinal, FontSize = 13, TextWrapping = TextWrapping.Wrap }));
         else if (comps.Count == 0) p.Children.Add(Fila(new TextBlock { Text = "Todos instalados e atualizados.", Foreground = Mudo, FontSize = 13 }));
@@ -735,12 +738,84 @@ class Aplicativo {
     void InstalarDriversMarcados() {
         var ids = driversMarcaveis.Where(a => a.Caixa.IsChecked == true).Select(a => a.Id).ToList();
         if (ids.Count == 0 || emAndamento || !podeAlterar) return;
-        Confirmar("Instalar " + ids.Count + (ids.Count == 1 ? " item?" : " itens?"), "Um ponto de restauração é criado antes. Pode ser preciso reiniciar.", "Instalar", delegate {
-            // A lista deixa de valer depois de instalar: a proxima acao e buscar de novo.
-            C<StackPanel>("ListaDrivers").Children.Clear(); driversMarcaveis.Clear();
-            C<TextBlock>("ResumoDrivers").Text = "Busque de novo para conferir o resultado.";
+        Confirmar("Instalar " + ids.Count + (ids.Count == 1 ? " item?" : " itens?"), "Um ponto de restauração é criado antes, e o driver atual é guardado antes de cada atualização do Windows Update. Pode ser preciso reiniciar.", "Instalar", delegate {
+            LimparDrivers();
             abaDepois = "Drivers"; tipoExec = "ferramenta"; total = ids.Count + 1;
             Executar("drivers.ps1", "-Acao instalar -Ids " + string.Join(",", ids), true, "Instalando drivers.");
+        });
+    }
+
+    // A lista deixa de valer depois de instalar, voltar ou apagar: a proxima acao e buscar de novo.
+    void LimparDrivers() {
+        C<StackPanel>("ListaDrivers").Children.Clear(); driversMarcaveis.Clear(); backupsVistos = 0; voltarAtivos = 0;
+        C<TextBlock>("ResumoDrivers").Text = "Busque de novo para conferir o resultado.";
+    }
+
+    // ---------- backups de drivers ----------
+
+    int backupsVistos, voltarAtivos;
+    static string Texto(Dictionary<string, object> d, string k) { return d.ContainsKey(k) && d[k] != null ? Convert.ToString(d[k]) : ""; }
+    static bool Sim(Dictionary<string, object> d, string k) { return d.ContainsKey(k) && d[k] is bool && (bool)d[k]; }
+    // O id vai para a linha de comando elevada: so o formato que drivers-backup.ps1 cria passa.
+    static bool IdBackupValido(string id) { return Regex.IsMatch(id ?? "", @"^\d{8}-\d{6}-[0-9a-f]{8}\z"); }
+
+    void MontarBackups(StackPanel p, ArrayList bks, string erro) {
+        backupsVistos = 0; voltarAtivos = 0;
+        if (erro.Length > 0) p.Children.Add(Fila(new TextBlock { Text = "A leitura dos backups de drivers falhou: " + erro, Foreground = Sinal, FontSize = 13, TextWrapping = TextWrapping.Wrap }));
+        if (bks.Count == 0) return;
+        p.Children.Add(Secao("Backups de drivers"));
+        foreach (Dictionary<string, object> b in bks) {
+            backupsVistos++;
+            string id = Texto(b, "id"), mb = Texto(b, "mb"), criado = Texto(b, "criado").Replace('T', ' ');
+            if (criado.Length > 16) criado = criado.Substring(0, 16);
+            bool legivel = Sim(b, "legivel");
+            var lista = (b.ContainsKey("dispositivos") && b["dispositivos"] is ArrayList ? (ArrayList)b["dispositivos"] : new ArrayList()).OfType<Dictionary<string, object>>().ToList();
+            bool pode = legivel && IdBackupValido(id) && lista.Any(d => Sim(d, "podeVoltar"));
+            var botoes = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top };
+            DockPanel.SetDock(botoes, Dock.Right);
+            var voltar = new Button { Style = (Style)w.FindResource("BotaoPilula"), Content = "Voltar", IsEnabled = podeAlterar && pode, Visibility = legivel ? Visibility.Visible : Visibility.Collapsed };
+            voltar.Click += delegate { VoltarDriver(id, lista); };
+            var apagar = new Button { Style = (Style)w.FindResource("BotaoPilula"), Content = "Apagar", IsEnabled = podeAlterar && IdBackupValido(id), Margin = new Thickness(6, 0, 0, 0) };
+            apagar.Click += delegate { ApagarBackup(id, mb); };
+            botoes.Children.Add(voltar); botoes.Children.Add(apagar);
+            if (voltar.IsEnabled) voltarAtivos++;
+            var topo = new DockPanel();
+            topo.Children.Add(botoes);
+            var st = new StackPanel();
+            st.Children.Add(new TextBlock { Text = Texto(b, "titulo"), FontSize = 13, Foreground = legivel ? Tinta : Sinal, TextTrimming = TextTrimming.CharacterEllipsis });
+            st.Children.Add(Dado((criado.Length > 0 ? criado + "   " : "") + mb + " MB"));
+            if (!legivel) st.Children.Add(Dado("O registro não pôde ser lido. A pasta drivers-backup\\" + id + " continua guardada."));
+            else if (lista.Count == 0) st.Children.Add(Dado("Nenhum dispositivo casou com esta atualização na hora de instalar: não há driver para voltar."));
+            foreach (var d in lista) {
+                string agora = Texto(d, "versaoAgora");
+                st.Children.Add(new TextBlock { Text = Texto(d, "nome"), FontSize = 12.5, Foreground = Suave, Margin = new Thickness(0, 9, 0, 0), TextWrapping = TextWrapping.Wrap });
+                st.Children.Add(Dado("versão " + Texto(d, "versaoAntes") + " → " + (agora.Length > 0 ? agora : "—") + "   " + (Sim(d, "podeVoltar") ? "pode voltar" : Texto(d, "motivo"))));
+            }
+            topo.Children.Add(st);
+            p.Children.Add(Fila(topo));
+        }
+    }
+
+    void VoltarDriver(string id, List<Dictionary<string, object>> lista) {
+        var alvos = lista.Where(d => Sim(d, "podeVoltar")).ToList();
+        if (emAndamento || !podeAlterar || !IdBackupValido(id) || alvos.Count == 0) return;
+        string texto = "Vai tentar voltar: " + string.Join(", ", alvos.Select(d => Texto(d, "nome") + ", de " + Texto(d, "versaoAgora") + " para " + Texto(d, "versaoAntes"))) + ".\nPode ser preciso reiniciar. O Windows Update pode reinstalar o driver novo.";
+        if (alvos.Any(d => Texto(d, "aviso") == "tela")) texto += "\nA tela pode piscar ou cair para o modo básico.";
+        if (alvos.Any(d => Texto(d, "aviso") == "internet")) texto += "\nA internet pode cair.";
+        texto += "\nUm ponto de restauração é criado antes. O backup continua guardado.";
+        Confirmar(alvos.Count == 1 ? "Voltar 1 driver?" : "Voltar " + alvos.Count + " drivers?", texto, alvos.Count == 1 ? "Voltar driver" : "Voltar drivers", delegate {
+            LimparDrivers();
+            abaDepois = "Drivers"; tipoExec = "ferramenta"; total = lista.Count + 1;
+            Executar("drivers.ps1", "-Acao voltar -Ids " + id, true, "Voltando driver.");
+        });
+    }
+
+    void ApagarBackup(string id, string mb) {
+        if (emAndamento || !podeAlterar || !IdBackupValido(id)) return;
+        Confirmar("Apagar este backup?", "Libera " + mb + " MB. Depois disso, o app não consegue mais voltar a este driver.", "Apagar", delegate {
+            LimparDrivers();
+            abaDepois = "Drivers"; tipoExec = "ferramenta"; total = 1;
+            Executar("drivers.ps1", "-Acao apagar -Ids " + id, true, "Apagando backup.");
         });
     }
 
@@ -1246,7 +1321,7 @@ class Aplicativo {
                 if (tipoExec == "mta") { terminado = false; C<RadioButton>("AbaMTA").IsChecked = true; }
                 w.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(delegate {
                     Fotografar(arqFotoFim);
-                    File.WriteAllText(arqFotoFim + ".txt", "falhou=" + falhou + " manual=" + manual + " linhas=" + linhas.Count + " feitas=" + feitas + " peso=" + concluidas + "/" + total + " term=" + C<RichTextBox>("Terminal").Document.Blocks.Count + " cancelado=" + cancelando + " codigo=" + codigo + " naoRodou=" + naoRodou + " mta=" + mtaAnalisado + "/" + correcoesMta.Count(a => a.Caixa.IsChecked == true) + "/" + podeAlterarMta + "/" + podeAlterar + " reverterMta=" + (C<Button>("ReverterMta").Visibility == Visibility.Visible));
+                    File.WriteAllText(arqFotoFim + ".txt", "falhou=" + falhou + " manual=" + manual + " linhas=" + linhas.Count + " feitas=" + feitas + " peso=" + concluidas + "/" + total + " term=" + C<RichTextBox>("Terminal").Document.Blocks.Count + " cancelado=" + cancelando + " codigo=" + codigo + " naoRodou=" + naoRodou + " mta=" + mtaAnalisado + "/" + correcoesMta.Count(a => a.Caixa.IsChecked == true) + "/" + podeAlterarMta + "/" + podeAlterar + " reverterMta=" + (C<Button>("ReverterMta").Visibility == Visibility.Visible) + " backups=" + backupsVistos + "/" + voltarAtivos + " drivers=" + driversMarcaveis.Count(a => a.Caixa.IsChecked == true) + "/" + driversMarcaveis.Count);
                     Application.Current.Shutdown();
                 }));
             };

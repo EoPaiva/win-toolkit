@@ -103,9 +103,28 @@ function Get-StreamingMinimo([int]$RamMB, [int]$VramMB) {
     [int]($maximo - [Math]::Max($maximo - $minimo, 32))
 }
 
-function Get-ConfigMta([string]$Arquivo, [string[]]$Chaves) {
+# O MTA pode gravar o texto de um atalho em ANSI sem declarar a codificacao, e o XmlDocument supoe UTF-8 e recusa o arquivo.
+# Le como UTF-8 quando o arquivo e UTF-8 valido; senao, byte a byte (Latin-1). Quem grava usa a mesma codificacao,
+# para nenhum byte fora das chaves alteradas mudar.
+function Read-XmlMta([string]$Arquivo, [bool]$Preservar = $false) {
+    $bytes = [IO.File]::ReadAllBytes($Arquivo)
+    $bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    $inicio = if ($bom) { 3 } else { 0 }
+    try {
+        $texto = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes, $inicio, $bytes.Length - $inicio)
+        $codificacao = New-Object Text.UTF8Encoding($bom)
+    } catch {
+        $codificacao = [Text.Encoding]::GetEncoding(28591)
+        $texto = $codificacao.GetString($bytes)
+    }
     $doc = New-Object Xml.XmlDocument
-    $doc.Load($Arquivo)
+    $doc.PreserveWhitespace = $Preservar
+    $doc.LoadXml($texto)
+    [pscustomobject]@{ Doc = $doc; Codificacao = $codificacao }
+}
+
+function Get-ConfigMta([string]$Arquivo, [string[]]$Chaves) {
+    $doc = (Read-XmlMta $Arquivo).Doc
     $saida = @{}
     foreach ($c in $Chaves) {
         $no = $doc.SelectSingleNode("/mainconfig/settings/$c")
@@ -118,9 +137,8 @@ function Get-ConfigMta([string]$Arquivo, [string[]]$Chaves) {
 # Grava em temporario e troca no fim: um erro nunca deixa o arquivo pela metade.
 function Set-ConfigMta([string]$Arquivo, [hashtable]$Valores) {
     if ((Get-Item -LiteralPath $Arquivo).IsReadOnly) { throw "$Arquivo esta como somente leitura" }
-    $doc = New-Object Xml.XmlDocument
-    $doc.PreserveWhitespace = $true
-    $doc.Load($Arquivo)
+    $lido = Read-XmlMta $Arquivo $true
+    $doc = $lido.Doc
     $settings = $doc.SelectSingleNode('/mainconfig/settings')
     if (-not $settings) { throw "$Arquivo nao tem mainconfig/settings" }
     $anteriores = @{}
@@ -133,8 +151,14 @@ function Set-ConfigMta([string]$Arquivo, [hashtable]$Valores) {
     }
     $temp = "$Arquivo.tmp"
     try {
-        $escritor = New-Object IO.StreamWriter($temp, $false, (New-Object Text.UTF8Encoding($false)))
-        try { $doc.Save($escritor) } finally { $escritor.Close() }
+        # Sem isto, o Save acrescenta uma declaracao <?xml?> que o arquivo do MTA nao tem.
+        $ajustes = New-Object Xml.XmlWriterSettings
+        $ajustes.OmitXmlDeclaration = -not ($doc.FirstChild -is [Xml.XmlDeclaration])
+        $escritor = New-Object IO.StreamWriter($temp, $false, $lido.Codificacao)
+        try {
+            $xml = [Xml.XmlWriter]::Create($escritor, $ajustes)
+            try { $doc.Save($xml) } finally { $xml.Close() }
+        } finally { $escritor.Close() }
         Set-ArquivoFinal $temp $Arquivo
     } finally {
         if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue }
